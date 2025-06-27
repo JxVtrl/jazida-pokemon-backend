@@ -8,6 +8,7 @@ const authRoutes = require('./routes/auth');
 const { requireAuth } = require('./middleware/auth');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger');
+const desafiarRoutes = require('./routes/desafiar');
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use('/pokemons', requireAuth, pokemonsRoutes);
 app.use('/treinadores', requireAuth, treinadoresRoutes);
 app.use('/batalhar', requireAuth, battleRoutes);
 app.use('/', requireAuth, batalhaRoutes);
+app.use('/desafiar', desafiarRoutes);
 
 // Documentação Swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
