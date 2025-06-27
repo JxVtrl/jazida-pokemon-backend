@@ -1,10 +1,13 @@
 module.exports = {
     development: {
-        client: 'sqlite3',
+        client: 'pg',
         connection: {
-            filename: './src/database/db.sqlite',
+            host: process.env.DB_HOST,
+            user: process.env.DB_USER,
+            password: process.env.DB_PASSWORD,
+            database: process.env.DB_NAME,
+            port: process.env.DB_PORT,
         },
-        useNullAsDefault: true,
         migrations: {
             directory: './src/database/migrations',
         },
@@ -18,6 +21,19 @@ module.exports = {
             filename: ':memory:',
         },
         useNullAsDefault: true,
+        migrations: {
+            directory: './src/database/migrations',
+        },
+    },
+    production: {
+        client: 'pg',
+        connection: {
+            host: process.env.DB_HOST,
+            user: process.env.DB_USER,
+            password: process.env.DB_PASSWORD,
+            database: process.env.DB_NAME,
+            port: process.env.DB_PORT,
+        },
         migrations: {
             directory: './src/database/migrations',
         },

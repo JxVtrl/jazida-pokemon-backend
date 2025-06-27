@@ -5,6 +5,7 @@ FROM node:18
 WORKDIR /app
 
 COPY package*.json ./
+COPY knexfile.js ./knexfile.js
 RUN npm install
 
 COPY . .
