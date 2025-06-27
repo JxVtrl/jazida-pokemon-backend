@@ -26,6 +26,7 @@ async function listPokemons(req, res) {
         const pokemons = await knex('pokemons');
         return res.status(200).json(pokemons);
     } catch (err) {
+        console.error(err);
         return res.status(500).json({ error: 'Erro ao listar pokémons.' });
     }
 }
@@ -40,6 +41,7 @@ async function getPokemonById(req, res) {
 
         return res.status(200).json(pokemon);
     } catch (err) {
+        console.error(err);
         return res.status(500).json({ error: 'Erro ao buscar pokémon.' });
     }
 }
@@ -55,6 +57,7 @@ async function updatePokemon(req, res) {
 
         return res.status(204).send();
     } catch (err) {
+        console.error(err);
         return res.status(500).json({ error: 'Erro ao atualizar pokémon.' });
     }
 }
@@ -70,6 +73,7 @@ async function deletePokemon(req, res) {
 
         return res.status(204).send();
     } catch (err) {
+        console.error(err);
         return res.status(500).json({ error: 'Erro ao deletar pokémon.' });
     }
 }
