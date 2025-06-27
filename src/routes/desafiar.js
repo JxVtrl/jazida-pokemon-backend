@@ -44,8 +44,20 @@ router.post('/:trainerBId', requireAuth, async (req, res) => {
         const trainerAId = req.user.id;
         const trainerBId = parseInt(req.params.trainerBId);
 
+        // Validação: trainerBId precisa ser um número válido
+        if (isNaN(trainerBId)) {
+            return res.status(400).json({ error: 'ID do treinador desafiado inválido.' });
+        }
+
         if (trainerAId === trainerBId) {
             return res.status(400).json({ error: 'Não é possível desafiar a si mesmo' });
+        }
+
+        // Verificar se o treinador desafiado existe
+        const knex = require('../database/db');
+        const treinadorB = await knex('trainers').where({ id: trainerBId }).first();
+        if (!treinadorB) {
+            return res.status(404).json({ error: 'Treinador desafiado não encontrado.' });
         }
 
         // Gerar ID único para a batalha

@@ -40,17 +40,14 @@ async function listarTreinadores(req, res) {
     try {
         console.log('🔍 Buscando todos os treinadores...');
 
-        const treinadores = await knex('pokemons')
-            .distinct('treinador')
-            .orderBy('treinador', 'asc');
+        // Buscar todos os treinadores cadastrados
+        const treinadores = await knex('trainers').select('id', 'nome').orderBy('nome', 'asc');
 
-        const nomesTreinadores = treinadores.map(t => t.treinador);
-
-        console.log(`✅ Encontrados ${nomesTreinadores.length} treinadores únicos`);
+        console.log(`✅ Encontrados ${treinadores.length} treinadores únicos`);
 
         return res.status(200).json({
-            treinadores: nomesTreinadores,
-            total: nomesTreinadores.length
+            treinadores: treinadores,
+            total: treinadores.length
         });
     } catch (err) {
         console.error('❌ Erro ao listar treinadores:', err);
