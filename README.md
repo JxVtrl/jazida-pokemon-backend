@@ -2,6 +2,27 @@
 
 API REST em Node.js para gerenciamento de Pokémons e sistema de batalhas com lógica probabilística.
 
+## 🌐 Ambiente de Produção
+
+- **URL da API:** [https://jazida.api.majorssolutions.com.br](https://jazida.api.majorssolutions.com.br)
+- **Documentação Swagger:** [https://jazida.api.majorssolutions.com.br/api-docs](https://jazida.api.majorssolutions.com.br/api-docs)
+
+**CORS configurado para aceitar:**
+- https://jazida.pokemon.majorssolutions.com.br
+- https://jazida.api.majorssolutions.com.br
+- https://jazida-pokemon-frontend.vercel.app
+
+**Exemplo de variável de ambiente:**
+```env
+PORT=4001
+NODE_ENV=production
+DB_HOST=postgres
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=jazida
+```
+
 ## 🛠️ Tecnologias
 
 - **Node.js** + **Express.js**
