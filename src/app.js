@@ -3,6 +3,7 @@ const cors = require('cors');
 const pokemonsRoutes = require('./routes/pokemons');
 const batalhaRoutes = require('./routes/batalha');
 const treinadoresRoutes = require('./routes/treinadores');
+const battleRoutes = require('./routes/battle');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger');
 
@@ -23,6 +24,7 @@ app.use(express.json());
 // Rotas da aplicação
 app.use('/pokemons', pokemonsRoutes);
 app.use('/treinadores', treinadoresRoutes);
+app.use('/batalhar', battleRoutes);
 app.use('/', batalhaRoutes);
 
 // Documentação Swagger
