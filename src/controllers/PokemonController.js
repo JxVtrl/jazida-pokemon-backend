@@ -15,6 +15,7 @@ async function createPokemon(req, res) {
         const novoPokemon = await knex('pokemons').where({ id }).first();
         return res.status(201).json(novoPokemon);
     } catch (err) {
+        console.error(err);
         return res.status(500).json({ error: 'Erro ao criar pokémon.' });
     }
 }
