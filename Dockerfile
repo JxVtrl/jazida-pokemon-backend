@@ -10,6 +10,6 @@ RUN npm install
 
 COPY . .
 
-EXPOSE 3001
+EXPOSE 4001
 
 CMD ["sh", "-c", "npx knex migrate:latest --env production && npx knex seed:run --env production && npm run dev"]

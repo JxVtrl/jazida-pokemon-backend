@@ -26,7 +26,7 @@ Crie um arquivo `.env` na raiz do projeto:
 
 ```env
 # Servidor
-PORT=3001
+PORT=4001
 NODE_ENV=development
 
 # Banco de dados
@@ -235,7 +235,7 @@ CREATE TABLE battles (
 docker build -t pokemon-backend .
 
 # Executar container
-docker run -p 3001:3001 pokemon-backend
+docker run -p 4001:4001 pokemon-backend
 ```
 
 ### Vercel/Railway
