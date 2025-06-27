@@ -100,4 +100,31 @@ describe('Pokémons CRUD', () => {
 
         expect(res.status).toBe(204);
     });
+
+    it('deve listar apenas os pokémons do treinador autenticado', async () => {
+        // Criar pokémon para outro treinador
+        await request(app)
+            .post('/pokemons')
+            .set('Authorization', `Bearer ${authToken}`)
+            .send({ tipo: 'charizard', treinador: 'OutroTreinador' });
+
+        // Criar pokémon para o treinador autenticado
+        await request(app)
+            .post('/pokemons')
+            .set('Authorization', `Bearer ${authToken}`)
+            .send({ tipo: 'mewtwo', treinador: 'TestTrainer' });
+
+        // Buscar pokémons do treinador autenticado
+        const res = await request(app)
+            .get('/pokemons/me/pokemons')
+            .set('Authorization', `Bearer ${authToken}`);
+
+        expect(res.status).toBe(200);
+        expect(Array.isArray(res.body)).toBe(true);
+
+        // Verificar que todos os pokémons retornados pertencem ao treinador autenticado
+        res.body.forEach(pokemon => {
+            expect(pokemon.treinador).toBe('TestTrainer');
+        });
+    });
 });

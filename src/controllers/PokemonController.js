@@ -110,4 +110,18 @@ async function deletePokemon(req, res) {
     }
 }
 
-module.exports = { createPokemon, listPokemons, getPokemonById, updatePokemon, deletePokemon };
+// Lista os pokémons do treinador autenticado
+async function listarMeusPokemons(req, res) {
+    try {
+        const treinador = req.treinadorNome;
+        if (!treinador) {
+            return res.status(401).json({ error: 'Não autenticado.' });
+        }
+        const pokemons = await knex('pokemons').where({ treinador });
+        return res.status(200).json(pokemons);
+    } catch (err) {
+        return res.status(500).json({ error: 'Erro ao buscar pokémons do treinador.' });
+    }
+}
+
+module.exports = { createPokemon, listPokemons, getPokemonById, updatePokemon, deletePokemon, listarMeusPokemons };
