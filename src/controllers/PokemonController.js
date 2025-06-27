@@ -1,5 +1,6 @@
 const knex = require('../database/db');
 
+// Tipos de pokémon permitidos no sistema
 const tiposPermitidos = ['pikachu', 'charizard', 'mewtwo'];
 
 // Criar um novo pokémon

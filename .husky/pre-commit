@@ -1,4 +1,10 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-npx lint-staged
+echo "🧪 Running tests..."
+npm run test
+
+echo "🔨 Running build..."
+npm run build
+
+echo "✅ Pre-commit checks passed!"
