@@ -1,4 +1,6 @@
 const express = require('express');
+const router = express.Router();
+
 const {
     createPokemon,
     listPokemons,
@@ -7,8 +9,7 @@ const {
     deletePokemon,
 } = require('../controllers/PokemonController');
 
-const router = express.Router();
-
+// CRUD Pokemons
 router.post('/', createPokemon);
 router.get('/', listPokemons);
 router.get('/:id', getPokemonById);
