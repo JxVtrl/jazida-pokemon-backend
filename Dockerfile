@@ -12,4 +12,4 @@ COPY . .
 
 EXPOSE 3001
 
-CMD ["sh", "-c", "npx knex migrate:latest --env production && npm run dev"]
+CMD ["sh", "-c", "npx knex migrate:latest --env production && npx knex seed:run --env production && npm run dev"]
