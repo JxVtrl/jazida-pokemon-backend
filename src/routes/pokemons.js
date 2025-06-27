@@ -204,6 +204,16 @@ router.get('/:id', getPokemonById);
  *     responses:
  *       204:
  *         description: Treinador atualizado com sucesso
+ *       400:
+ *         description: Campo treinador não fornecido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "O campo 'treinador' é obrigatório."
  *       404:
  *         description: Pokémon não encontrado
  *         content:

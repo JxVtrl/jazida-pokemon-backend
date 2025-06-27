@@ -79,6 +79,11 @@ async function updatePokemon(req, res) {
     const { id } = req.params;
     const { treinador } = req.body;
 
+    // Validar se o campo treinador foi enviado
+    if (!treinador) {
+        return res.status(400).json({ error: "O campo 'treinador' é obrigatório." });
+    }
+
     try {
         const updated = await knex('pokemons').where({ id }).update({ treinador });
         if (!updated) return res.status(404).json({ error: 'Pokémon não encontrado.' });
@@ -89,7 +94,6 @@ async function updatePokemon(req, res) {
         return res.status(500).json({ error: 'Erro ao atualizar pokémon.' });
     }
 }
-
 
 // Deletar um pokémon
 async function deletePokemon(req, res) {
@@ -105,6 +109,5 @@ async function deletePokemon(req, res) {
         return res.status(500).json({ error: 'Erro ao deletar pokémon.' });
     }
 }
-
 
 module.exports = { createPokemon, listPokemons, getPokemonById, updatePokemon, deletePokemon };

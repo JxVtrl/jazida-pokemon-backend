@@ -54,6 +54,24 @@ describe('Pokémons CRUD', () => {
         expect(res.status).toBe(204);
     });
 
+    it('deve retornar erro se treinador não for fornecido', async () => {
+        const res = await request(app)
+            .put(`/pokemons/${pokemonId}`)
+            .send({});
+
+        expect(res.status).toBe(400);
+        expect(res.body.error).toBe("O campo 'treinador' é obrigatório.");
+    });
+
+    it('deve retornar erro se pokémon não existir', async () => {
+        const res = await request(app)
+            .put('/pokemons/99999')
+            .send({ treinador: 'Misty' });
+
+        expect(res.status).toBe(404);
+        expect(res.body.error).toBe('Pokémon não encontrado.');
+    });
+
     it('deve deletar o pokémon', async () => {
         const res = await request(app).delete(`/pokemons/${pokemonId}`);
         expect(res.status).toBe(204);
