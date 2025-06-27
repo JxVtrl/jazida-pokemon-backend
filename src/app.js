@@ -9,8 +9,9 @@ const app = express();
 
 app.use(cors({
     origin: [
-        'https://jazida-pokemon-frontend.vercel.app',
+        'https://jazida.pokemon.majorssolutions.com.br',
         'https://jazida.api.majorssolutions.com.br',
+        'https://jazida-pokemon-frontend.vercel.app',
         'http://localhost:5173'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
