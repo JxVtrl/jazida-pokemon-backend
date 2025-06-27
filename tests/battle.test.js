@@ -13,6 +13,16 @@ afterAll(async () => {
 
 describe('BattleController - Batalhar Pokémons', () => {
     let pokemonAId, pokemonBId, pokemonCId;
+    let authToken;
+
+    beforeAll(async () => {
+        // Criar um treinador para autenticação
+        const registerRes = await request(app)
+            .post('/auth/register')
+            .send({ nome: 'BattleTrainer', senha: '123456' });
+
+        authToken = registerRes.body.token;
+    });
 
     beforeEach(async () => {
         // Criar pokémons para teste
@@ -35,7 +45,8 @@ describe('BattleController - Batalhar Pokémons', () => {
 
     it('deve realizar uma batalha entre dois pokémons válidos', async () => {
         const res = await request(app)
-            .post(`/batalhar/${pokemonAId}/${pokemonBId}`);
+            .post(`/batalhar/${pokemonAId}/${pokemonBId}`)
+            .set('Authorization', `Bearer ${authToken}`);
 
         expect(res.status).toBe(200);
         expect(res.body).toHaveProperty('vencedor');
@@ -68,7 +79,8 @@ describe('BattleController - Batalhar Pokémons', () => {
 
     it('deve retornar erro 404 quando pokémon A não existe', async () => {
         const res = await request(app)
-            .post(`/batalhar/99999/${pokemonBId}`);
+            .post(`/batalhar/99999/${pokemonBId}`)
+            .set('Authorization', `Bearer ${authToken}`);
 
         expect(res.status).toBe(404);
         expect(res.body).toHaveProperty('error', 'Pokémon não encontrado.');
@@ -77,7 +89,8 @@ describe('BattleController - Batalhar Pokémons', () => {
 
     it('deve retornar erro 404 quando pokémon B não existe', async () => {
         const res = await request(app)
-            .post(`/batalhar/${pokemonAId}/99999`);
+            .post(`/batalhar/${pokemonAId}/99999`)
+            .set('Authorization', `Bearer ${authToken}`);
 
         expect(res.status).toBe(404);
         expect(res.body).toHaveProperty('error', 'Pokémon não encontrado.');
@@ -86,7 +99,8 @@ describe('BattleController - Batalhar Pokémons', () => {
 
     it('deve retornar erro 400 quando tenta batalhar pokémon contra ele mesmo', async () => {
         const res = await request(app)
-            .post(`/batalhar/${pokemonAId}/${pokemonAId}`);
+            .post(`/batalhar/${pokemonAId}/${pokemonAId}`)
+            .set('Authorization', `Bearer ${authToken}`);
 
         expect(res.status).toBe(400);
         expect(res.body).toHaveProperty('error', 'Não é possível batalhar um pokémon contra ele mesmo.');
@@ -99,7 +113,8 @@ describe('BattleController - Batalhar Pokémons', () => {
         ]).returning('*');
 
         const res = await request(app)
-            .post(`/batalhar/${pokemonFraco.id}/${pokemonBId}`);
+            .post(`/batalhar/${pokemonFraco.id}/${pokemonBId}`)
+            .set('Authorization', `Bearer ${authToken}`);
 
         expect(res.status).toBe(200);
 
@@ -116,7 +131,8 @@ describe('BattleController - Batalhar Pokémons', () => {
 
     it('deve calcular probabilidades corretamente baseadas nos níveis', async () => {
         const res = await request(app)
-            .post(`/batalhar/${pokemonAId}/${pokemonBId}`);
+            .post(`/batalhar/${pokemonAId}/${pokemonBId}`)
+            .set('Authorization', `Bearer ${authToken}`);
 
         expect(res.status).toBe(200);
 
@@ -131,7 +147,8 @@ describe('BattleController - Batalhar Pokémons', () => {
 
     it('deve atualizar níveis corretamente após a batalha', async () => {
         const res = await request(app)
-            .post(`/batalhar/${pokemonAId}/${pokemonBId}`);
+            .post(`/batalhar/${pokemonAId}/${pokemonBId}`)
+            .set('Authorization', `Bearer ${authToken}`);
 
         expect(res.status).toBe(200);
 

@@ -13,10 +13,21 @@ afterAll(async () => {
 
 describe('Pokémons CRUD', () => {
     let pokemonId;
+    let authToken;
+
+    beforeAll(async () => {
+        // Criar um treinador para autenticação
+        const registerRes = await request(app)
+            .post('/auth/register')
+            .send({ nome: 'TestTrainer', senha: '123456' });
+
+        authToken = registerRes.body.token;
+    });
 
     it('deve criar um novo pokémon válido', async () => {
         const res = await request(app)
             .post('/pokemons')
+            .set('Authorization', `Bearer ${authToken}`)
             .send({ tipo: 'pikachu', treinador: 'Ash' });
 
         expect(res.status).toBe(201);
@@ -29,19 +40,26 @@ describe('Pokémons CRUD', () => {
     it('deve retornar erro se tipo for inválido', async () => {
         const res = await request(app)
             .post('/pokemons')
+            .set('Authorization', `Bearer ${authToken}`)
             .send({ tipo: 'bulbasaur', treinador: 'Ash' });
 
         expect(res.status).toBe(400);
     });
 
     it('deve listar pokémons', async () => {
-        const res = await request(app).get('/pokemons');
+        const res = await request(app)
+            .get('/pokemons')
+            .set('Authorization', `Bearer ${authToken}`);
+
         expect(res.status).toBe(200);
         expect(res.body.length).toBeGreaterThan(0);
     });
 
     it('deve buscar pokémon por id', async () => {
-        const res = await request(app).get(`/pokemons/${pokemonId}`);
+        const res = await request(app)
+            .get(`/pokemons/${pokemonId}`)
+            .set('Authorization', `Bearer ${authToken}`);
+
         expect(res.status).toBe(200);
         expect(res.body.id).toBe(pokemonId);
     });
@@ -49,6 +67,7 @@ describe('Pokémons CRUD', () => {
     it('deve alterar o treinador', async () => {
         const res = await request(app)
             .put(`/pokemons/${pokemonId}`)
+            .set('Authorization', `Bearer ${authToken}`)
             .send({ treinador: 'Misty' });
 
         expect(res.status).toBe(204);
@@ -57,6 +76,7 @@ describe('Pokémons CRUD', () => {
     it('deve retornar erro se treinador não for fornecido', async () => {
         const res = await request(app)
             .put(`/pokemons/${pokemonId}`)
+            .set('Authorization', `Bearer ${authToken}`)
             .send({});
 
         expect(res.status).toBe(400);
@@ -66,6 +86,7 @@ describe('Pokémons CRUD', () => {
     it('deve retornar erro se pokémon não existir', async () => {
         const res = await request(app)
             .put('/pokemons/99999')
+            .set('Authorization', `Bearer ${authToken}`)
             .send({ treinador: 'Misty' });
 
         expect(res.status).toBe(404);
@@ -73,7 +94,10 @@ describe('Pokémons CRUD', () => {
     });
 
     it('deve deletar o pokémon', async () => {
-        const res = await request(app).delete(`/pokemons/${pokemonId}`);
+        const res = await request(app)
+            .delete(`/pokemons/${pokemonId}`)
+            .set('Authorization', `Bearer ${authToken}`);
+
         expect(res.status).toBe(204);
     });
 });

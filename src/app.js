@@ -4,6 +4,8 @@ const pokemonsRoutes = require('./routes/pokemons');
 const batalhaRoutes = require('./routes/batalha');
 const treinadoresRoutes = require('./routes/treinadores');
 const battleRoutes = require('./routes/battle');
+const authRoutes = require('./routes/auth');
+const { requireAuth } = require('./middleware/auth');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger');
 
@@ -21,11 +23,14 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Rotas da aplicação
-app.use('/pokemons', pokemonsRoutes);
-app.use('/treinadores', treinadoresRoutes);
-app.use('/batalhar', battleRoutes);
-app.use('/', batalhaRoutes);
+// Rotas públicas (sem autenticação)
+app.use('/auth', authRoutes);
+
+// Rotas protegidas (com autenticação)
+app.use('/pokemons', requireAuth, pokemonsRoutes);
+app.use('/treinadores', requireAuth, treinadoresRoutes);
+app.use('/batalhar', requireAuth, battleRoutes);
+app.use('/', requireAuth, batalhaRoutes);
 
 // Documentação Swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));

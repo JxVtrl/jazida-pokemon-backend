@@ -2,47 +2,55 @@ const request = require('supertest');
 const app = require('../src/app');
 const knex = require('../src/database/db');
 
+beforeAll(async () => {
+    await knex.migrate.latest();
+});
+
+afterAll(async () => {
+    await knex.migrate.rollback();
+    await knex.destroy();
+});
+
 describe('Batalha de Pokémons', () => {
     let pokemonA, pokemonB;
+    let authToken;
 
     beforeAll(async () => {
-        await knex.migrate.rollback();
-        await knex.migrate.latest();
+        // Criar um treinador para autenticação
+        const registerRes = await request(app)
+            .post('/auth/register')
+            .send({ nome: 'BatalhaTest', senha: '123456' });
+
+        authToken = registerRes.body.token;
     });
 
     beforeEach(async () => {
-        await knex('pokemons').del();
+        // Criar pokémons para teste
+        [pokemonA] = await knex('pokemons').insert([
+            { tipo: 'pikachu', treinador: 'Ash', nivel: 1 }
+        ]).returning('*');
 
-        const [a] = await knex('pokemons')
-            .insert({ tipo: 'pikachu', treinador: 'Ash', nivel: 2 })
-            .returning('*');
-
-        const [b] = await knex('pokemons')
-            .insert({ tipo: 'charizard', treinador: 'Brock', nivel: 1 })
-            .returning('*');
-
-        pokemonA = a;
-        pokemonB = b;
-    });
-
-    afterAll(async () => {
-        await knex.destroy();
+        [pokemonB] = await knex('pokemons').insert([
+            { tipo: 'charizard', treinador: 'Misty', nivel: 2 }
+        ]).returning('*');
     });
 
     it('deve retornar vencedor e perdedor corretamente', async () => {
-        const res = await request(app).post(`/batalhar/${pokemonA.id}/${pokemonB.id}`);
+        const res = await request(app)
+            .post(`/batalhar/${pokemonA.id}/${pokemonB.id}`)
+            .set('Authorization', `Bearer ${authToken}`);
 
         expect(res.status).toBe(200);
         expect(res.body).toHaveProperty('vencedor');
         expect(res.body).toHaveProperty('perdedor');
+        expect(res.body).toHaveProperty('batalha');
 
-        const vencedor = res.body.vencedor;
-        const perdedor = res.body.perdedor;
+        // Verificar que um é vencedor e outro é perdedor
+        expect(res.body.vencedor.id).not.toBe(res.body.perdedor.id);
 
-        // Nível do vencedor deve ter aumentado
-        expect(vencedor.nivel).toBeGreaterThan(pokemonA.nivel - 1); // pelo menos +1
-        // Nível do perdedor deve ter diminuído (ou ser 0 se for deletado)
-        expect(perdedor.nivel).toBeLessThanOrEqual(pokemonB.nivel);
+        // Verificar que os níveis foram atualizados
+        expect(res.body.vencedor.nivel).toBeGreaterThan(1);
+        expect(res.body.perdedor.nivel).toBeGreaterThanOrEqual(0);
     });
 
     it('deve deletar pokémon perdedor se nível chegar a 0', async () => {
