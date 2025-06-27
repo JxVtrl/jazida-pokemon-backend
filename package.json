@@ -6,6 +6,10 @@
   "scripts": {
     "test": "cross-env NODE_ENV=test jest",
     "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "migrate": "knex migrate:latest",
+    "seed": "knex seed:run",
+    "setup": "knex migrate:latest && knex seed:run",
     "build": "node -c src/app.js && node -c src/server.js && echo 'Build completed successfully'",
     "prepare": "husky install"
   },

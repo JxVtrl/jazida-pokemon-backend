@@ -14,12 +14,35 @@ async function createPokemon(req, res) {
 
     try {
         console.log('📡 Inserindo pokémon no banco...');
-        const [id] = await knex('pokemons').insert({ tipo, treinador, nivel: 1 });
-        console.log('✅ Pokémon inserido com ID:', id);
+
+        // Abordagem mais robusta para diferentes versões do Knex e bancos
+        const insertResult = await knex('pokemons').insert({
+            tipo,
+            treinador,
+            nivel: 1
+        });
+
+        console.log('✅ Resultado da inserção:', insertResult);
+
+        // Obtém o ID do pokémon inserido
+        let pokemonId;
+        if (Array.isArray(insertResult) && insertResult.length > 0) {
+            pokemonId = insertResult[0];
+        } else if (typeof insertResult === 'object' && insertResult.id) {
+            pokemonId = insertResult.id;
+        } else {
+            pokemonId = insertResult;
+        }
+
+        console.log('✅ Pokémon inserido com ID:', pokemonId);
 
         console.log('📡 Buscando pokémon criado...');
-        const novoPokemon = await knex('pokemons').where({ id }).first();
+        const novoPokemon = await knex('pokemons').where({ id: pokemonId }).first();
         console.log('✅ Pokémon encontrado:', novoPokemon);
+
+        if (!novoPokemon) {
+            throw new Error('Pokémon não foi encontrado após inserção');
+        }
 
         return res.status(201).json(novoPokemon);
     } catch (err) {

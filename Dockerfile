@@ -12,4 +12,5 @@ COPY . .
 
 EXPOSE 4001
 
-CMD ["sh", "-c", "npx knex migrate:latest --env production && npx knex seed:run --env production && npm run dev"]
+# Script de inicialização que aguarda o banco estar pronto
+CMD ["sh", "-c", "echo 'Aguardando banco de dados...' && sleep 10 && npm run setup && npm run dev"]
