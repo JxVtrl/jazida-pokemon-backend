@@ -6,27 +6,50 @@ const tiposPermitidos = ['pikachu', 'charizard', 'mewtwo'];
 // Criar um novo pokémon
 async function createPokemon(req, res) {
     const { tipo, treinador } = req.body;
+    console.log('🔍 Tentando criar pokémon:', { tipo, treinador });
+
     if (!tiposPermitidos.includes(tipo)) {
         return res.status(400).json({ error: 'Tipo inválido. Use pikachu, charizard ou mewtwo.' });
     }
 
     try {
+        console.log('📡 Inserindo pokémon no banco...');
         const [id] = await knex('pokemons').insert({ tipo, treinador, nivel: 1 });
+        console.log('✅ Pokémon inserido com ID:', id);
+
+        console.log('📡 Buscando pokémon criado...');
         const novoPokemon = await knex('pokemons').where({ id }).first();
+        console.log('✅ Pokémon encontrado:', novoPokemon);
+
         return res.status(201).json(novoPokemon);
     } catch (err) {
-        console.error(err);
+        console.error('❌ Erro ao criar pokémon:');
+        console.error('   - Mensagem:', err.message);
+        console.error('   - Stack:', err.stack);
+        console.error('   - Código:', err.code);
+        console.error('   - Detalhes completos:', err);
+
         return res.status(500).json({ error: 'Erro ao criar pokémon.' });
     }
 }
 
 // Listar todos os pokémons
 async function listPokemons(req, res) {
+    console.log('🔍 Iniciando listagem de pokémons...');
+
     try {
+        console.log('📡 Executando query no banco de dados...');
         const pokemons = await knex('pokemons');
+        console.log(`✅ Query executada com sucesso. ${pokemons.length} pokémons encontrados:`, pokemons);
+
         return res.status(200).json(pokemons);
     } catch (err) {
-        console.error(err);
+        console.error('❌ Erro ao listar pokémons:');
+        console.error('   - Mensagem:', err.message);
+        console.error('   - Stack:', err.stack);
+        console.error('   - Código:', err.code);
+        console.error('   - Detalhes completos:', err);
+
         return res.status(500).json({ error: 'Erro ao listar pokémons.' });
     }
 }
