@@ -46,6 +46,13 @@ io.on('connection', (socket) => {
         socket.leave(roomName);
         console.log(`🚪 Treinador ${socket.trainerId} saiu da batalha ${battleId}`);
 
+        // Notificar outros treinadores na sala que alguém saiu
+        socket.to(roomName).emit('battle-player-left', {
+            battleId,
+            trainerId: socket.trainerId,
+            message: 'O outro treinador saiu da batalha'
+        });
+
         // Remover da lista de salas ativas
         if (battleRooms.has(roomName)) {
             battleRooms.get(roomName).delete(socket.id);
@@ -57,8 +64,31 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         if (socket.trainerId) {
-            trainerSockets.delete(socket.trainerId);
             console.log(`❌ Treinador desconectado: ${socket.trainerId}`);
+            
+            // Verificar se o treinador estava em alguma batalha e notificar outros participantes
+            for (const [roomName, sockets] of battleRooms.entries()) {
+                if (sockets.has(socket.id)) {
+                    const battleId = roomName.replace('batalha-', '');
+                    console.log(`🚪 Treinador ${socket.trainerId} desconectou da batalha ${battleId}`);
+                    
+                    // Notificar outros treinadores na sala
+                    socket.to(roomName).emit('battle-player-left', {
+                        battleId,
+                        trainerId: socket.trainerId,
+                        message: 'O outro treinador desconectou da batalha'
+                    });
+                    
+                    // Remover da sala
+                    sockets.delete(socket.id);
+                    if (sockets.size === 0) {
+                        battleRooms.delete(roomName);
+                    }
+                    break;
+                }
+            }
+            
+            trainerSockets.delete(socket.trainerId);
         }
     });
 });

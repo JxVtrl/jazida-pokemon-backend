@@ -116,7 +116,7 @@ describe('Pokémons CRUD', () => {
 
         // Buscar pokémons do treinador autenticado
         const res = await request(app)
-            .get('/pokemons/me/pokemons')
+            .get('/me/pokemons')
             .set('Authorization', `Bearer ${authToken}`);
 
         expect(res.status).toBe(200);

@@ -217,6 +217,80 @@ router.post('/batalha/:battleId/iniciar', requireAuth, async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /desafiar/aceitar/{battleId}:
+ *   post:
+ *     summary: Aceitar um desafio de batalha
+ *     parameters:
+ *       - in: path
+ *         name: battleId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID da batalha
+ *     responses:
+ *       200:
+ *         description: Desafio aceito com sucesso
+ *       404:
+ *         description: Batalha não encontrada
+ */
+router.post('/aceitar/:battleId', requireAuth, async (req, res) => {
+    try {
+        const { battleId } = req.params;
+        const trainerId = req.user.id;
+
+        const battle = battles.get(battleId);
+        if (!battle) {
+            return res.status(404).json({ error: 'Batalha não encontrada' });
+        }
+
+        // Verificar se o treinador é um dos participantes da batalha
+        if (battle.trainerAId !== trainerId && battle.trainerBId !== trainerId) {
+            return res.status(403).json({ error: 'Você não é participante desta batalha' });
+        }
+
+        // Obter instâncias do Socket.IO
+        const io = req.app.get('io');
+        const trainerSockets = req.app.get('trainerSockets');
+
+        // Notificar ambos os treinadores que o desafio foi aceito
+        const trainerASocketId = trainerSockets.get(battle.trainerAId);
+        const trainerBSocketId = trainerSockets.get(battle.trainerBId);
+
+        if (trainerASocketId) {
+            io.to(trainerASocketId).emit('battle-accepted', {
+                battleId,
+                trainerAId: battle.trainerAId,
+                trainerBId: battle.trainerBId,
+                acceptedBy: trainerId
+            });
+        }
+
+        if (trainerBSocketId) {
+            io.to(trainerBSocketId).emit('battle-accepted', {
+                battleId,
+                trainerAId: battle.trainerAId,
+                trainerBId: battle.trainerBId,
+                acceptedBy: trainerId
+            });
+        }
+
+        console.log(`✅ Desafio aceito: ${trainerId} aceitou a batalha ${battleId}`);
+
+        res.json({
+            message: 'Desafio aceito com sucesso!',
+            battleId,
+            trainerAId: battle.trainerAId,
+            trainerBId: battle.trainerBId
+        });
+
+    } catch (error) {
+        console.error('❌ Erro ao aceitar desafio:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
 // Função para simular batalha em tempo real
 async function simulateBattle(battleId, pokemonA, pokemonB, io) {
     const roomName = `batalha-${battleId}`;
