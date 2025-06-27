@@ -1,0 +1,61 @@
+const request = require('supertest');
+const app = require('../src/app');
+const knex = require('../src/database/db');
+
+beforeAll(async () => {
+    await knex.migrate.latest();
+});
+
+afterAll(async () => {
+    await knex.migrate.rollback();
+    await knex.destroy();
+});
+
+describe('Pokémons CRUD', () => {
+    let pokemonId;
+
+    it('deve criar um novo pokémon válido', async () => {
+        const res = await request(app)
+            .post('/pokemons')
+            .send({ tipo: 'pikachu', treinador: 'Ash' });
+
+        expect(res.status).toBe(201);
+        expect(res.body).toHaveProperty('id');
+        expect(res.body.nivel).toBe(1);
+
+        pokemonId = res.body.id;
+    });
+
+    it('deve retornar erro se tipo for inválido', async () => {
+        const res = await request(app)
+            .post('/pokemons')
+            .send({ tipo: 'bulbasaur', treinador: 'Ash' });
+
+        expect(res.status).toBe(400);
+    });
+
+    it('deve listar pokémons', async () => {
+        const res = await request(app).get('/pokemons');
+        expect(res.status).toBe(200);
+        expect(res.body.length).toBeGreaterThan(0);
+    });
+
+    it('deve buscar pokémon por id', async () => {
+        const res = await request(app).get(`/pokemons/${pokemonId}`);
+        expect(res.status).toBe(200);
+        expect(res.body.id).toBe(pokemonId);
+    });
+
+    it('deve alterar o treinador', async () => {
+        const res = await request(app)
+            .put(`/pokemons/${pokemonId}`)
+            .send({ treinador: 'Misty' });
+
+        expect(res.status).toBe(204);
+    });
+
+    it('deve deletar o pokémon', async () => {
+        const res = await request(app).delete(`/pokemons/${pokemonId}`);
+        expect(res.status).toBe(204);
+    });
+});

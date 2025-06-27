@@ -12,4 +12,14 @@ module.exports = {
             directory: './src/database/seeds',
         },
     },
+    test: {
+        client: 'sqlite3',
+        connection: {
+            filename: ':memory:',
+        },
+        useNullAsDefault: true,
+        migrations: {
+            directory: './src/database/migrations',
+        },
+    },
 };

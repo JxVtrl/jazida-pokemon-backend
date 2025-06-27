@@ -1,10 +1,11 @@
 const express = require('express');
-const bodyParser = require('body-parser');
-const pokemonRoutes = require('./routes/pokemons');
+const cors = require('cors');
+const pokemonsRoutes = require('./routes/pokemons');
 
 const app = express();
-app.use(bodyParser.json());
 
-app.use('/pokemons', pokemonRoutes);
+app.use(cors());
+app.use(express.json());
+app.use('/pokemons', pokemonsRoutes);
 
 module.exports = app;

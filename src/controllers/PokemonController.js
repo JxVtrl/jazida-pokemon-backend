@@ -1,4 +1,4 @@
-const knex = require('../database');
+const knex = require('../database/db');
 
 const tiposPermitidos = ['pikachu', 'charizard', 'mewtwo'];
 
@@ -10,7 +10,7 @@ async function createPokemon(req, res) {
     }
 
     try {
-        const [id] = await knex('pokemons').insert({ tipo, treinador, nivel: 1 }).returning('id');
+        const [id] = await knex('pokemons').insert({ tipo, treinador, nivel: 1 });
         const novoPokemon = await knex('pokemons').where({ id }).first();
         return res.status(201).json(novoPokemon);
     } catch (err) {

@@ -5,7 +5,7 @@ const {
     getPokemonById,
     updatePokemon,
     deletePokemon,
-} = require('../controllers/pokemonsController');
+} = require('../controllers/PokemonController');
 
 const router = express.Router();
 
