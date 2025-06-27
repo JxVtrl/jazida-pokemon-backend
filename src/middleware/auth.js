@@ -42,6 +42,7 @@ async function requireAuth(req, res, next) {
         req.treinadorId = treinador.id;
         req.treinadorNome = treinador.nome;
         req.treinador = treinador;
+        req.user = treinador;
 
         console.log(`🔐 Autenticação válida para treinador: ${treinador.nome} (ID: ${treinador.id})`);
 

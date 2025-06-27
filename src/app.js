@@ -9,6 +9,7 @@ const { requireAuth } = require('./middleware/auth');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger');
 const desafiarRoutes = require('./routes/desafiar');
+const { listarMeusPokemons } = require('./controllers/PokemonController');
 
 const app = express();
 
@@ -26,6 +27,9 @@ app.use(express.json());
 
 // Rotas públicas (sem autenticação)
 app.use('/auth', authRoutes);
+
+// Rota específica para pokémons do usuário autenticado
+app.get('/me/pokemons', requireAuth, listarMeusPokemons);
 
 // Rotas protegidas (com autenticação)
 app.use('/pokemons', requireAuth, pokemonsRoutes);
