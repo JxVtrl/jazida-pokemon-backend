@@ -8,7 +8,11 @@ const swaggerSpec = require('./swagger');
 const app = express();
 
 app.use(cors({
-    origin: ['https://jazida-pokemon-frontend.vercel.app/', 'http://localhost:5173'],
+    origin: [
+        'https://jazida-pokemon-frontend.vercel.app',
+        'https://jazida.api.majorssolutions.com.br',
+        'http://localhost:5173'
+    ],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
