@@ -26,6 +26,9 @@ module.exports = {
         migrations: {
             directory: './src/database/migrations',
         },
+        seeds: {
+            directory: './src/database/seeds',
+        },
     },
     production: {
         client: 'pg',
@@ -38,6 +41,9 @@ module.exports = {
         },
         migrations: {
             directory: './src/database/migrations',
+        },
+        seeds: {
+            directory: './src/database/seeds',
         },
     },
 };
