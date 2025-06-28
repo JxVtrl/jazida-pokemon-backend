@@ -5,6 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "cross-env NODE_ENV=test jest",
+    "test:coverage": "cross-env NODE_ENV=test jest --coverage",
+    "test:watch": "cross-env NODE_ENV=test jest --watch",
+    "test:verbose": "cross-env NODE_ENV=test jest --verbose",
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "migrate": "knex migrate:latest",

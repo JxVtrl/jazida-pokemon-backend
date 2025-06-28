@@ -1,289 +1,159 @@
 # 🔁 Backend - API Pokémon Battle
 
-API REST em Node.js para gerenciamento de Pokémons e sistema de batalhas com lógica probabilística.
+API REST em Node.js para gerenciamento de Pokémons e sistema de batalhas probabilísticas.
 
-## 🌐 Ambiente de Produção
+## 📋 Endpoints (100% compatível com o desafio)
 
-- **URL da API:** [https://jazida.api.majorssolutions.com.br](https://jazida.api.majorssolutions.com.br)
-- **Documentação Swagger:** [https://jazida.api.majorssolutions.com.br/api-docs](https://jazida.api.majorssolutions.com.br/api-docs)
+### CRUD de Pokémons
 
-**CORS configurado para aceitar:**
-- https://jazida.pokemon.majorssolutions.com.br
-- https://jazida.api.majorssolutions.com.br
-- https://jazida-pokemon-frontend.vercel.app
-
-**Exemplo de variável de ambiente:**
-```env
-PORT=4001
-NODE_ENV=production
-DB_HOST=postgres
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=postgres
-DB_NAME=jazida
-```
-
-## 🛠️ Tecnologias
-
-- **Node.js** + **Express.js**
-- **Socket.IO** para comunicação em tempo real
-- **PostgreSQL** ou **SQLite** (configurável)
-- **Jest** para testes unitários
-- **Swagger** para documentação da API
-
-## 📦 Instalação
-
-```bash
-# Instalar dependências
-npm install
-
-# Configurar variáveis de ambiente
-cp .env.example .env
-```
-
-## ⚙️ Configuração
-
-Crie um arquivo `.env` na raiz do projeto:
-
-```env
-# Servidor
-PORT=4001
-NODE_ENV=development
-
-# Banco de dados
-DB_TYPE=postgresql  # ou sqlite
-DATABASE_URL=postgresql://user:password@localhost:5432/pokemon_battle
-# ou para SQLite: DATABASE_URL=file:./dev.db
-
-# Socket.IO
-SOCKET_CORS_ORIGIN=http://localhost:3000
-```
-
-## 🚀 Executando o projeto
-
-```bash
-# Desenvolvimento
-npm run dev
-
-# Produção
-npm start
-
-# Testes
-npm test
-
-# Testes com coverage
-npm run test:coverage
-```
-
-## 📚 Endpoints da API
-
-### 🎮 Pokémons
-
-#### `GET /api/pokemons`
-Lista todos os Pokémons cadastrados.
-
-**Resposta:**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": 1,
-      "tipo": "pikachu",
-      "treinador": "Ash",
-      "nivel": 5,
-      "created_at": "2024-01-01T00:00:00.000Z",
-      "updated_at": "2024-01-01T00:00:00.000Z"
-    }
-  ]
-}
-```
-
-#### `GET /api/pokemons/:id`
-Busca um Pokémon específico por ID.
-
-#### `POST /api/pokemons`
-Cria um novo Pokémon.
+#### 1. Criar Pokémon
+**POST** `/pokemons`
 
 **Body:**
 ```json
 {
-  "tipo": "charizard",
-  "treinador": "Red",
+  "tipo": "pikachu", // pikachu, charizard ou mewtwo
+  "treinador": "Thiago"
+}
+```
+**Retorno 201:**
+```json
+{
+  "id": 1,
+  "tipo": "pikachu",
+  "treinador": "Thiago",
   "nivel": 1
 }
 ```
 
-**Validações:**
-- `tipo`: deve ser `pikachu`, `charizard` ou `mewtwo`
-- `treinador`: string obrigatória
-- `nivel`: número inteiro positivo
-
-#### `PUT /api/pokemons/:id`
-Atualiza um Pokémon existente.
-
-#### `DELETE /api/pokemons/:id`
-Remove um Pokémon do sistema.
-
-### ⚔️ Batalhas
-
-#### `POST /api/battles`
-Inicia uma batalha entre dois Pokémons.
+#### 2. Alterar Treinador
+**PUT** `/pokemons/:id`
 
 **Body:**
 ```json
 {
-  "pokemon1_id": 1,
-  "pokemon2_id": 2
+  "treinador": "Novo Nome"
+}
+```
+**Retorno 204:**
+
+#### 3. Deletar Pokémon
+**DELETE** `/pokemons/:id`
+**Retorno 204:**
+
+#### 4. Carregar Pokémon
+**GET** `/pokemons/:id`
+**Retorno 200:**
+```json
+{
+  "id": 1,
+  "tipo": "pikachu",
+  "treinador": "Thiago",
+  "nivel": 1
 }
 ```
 
-**Resposta:**
+#### 5. Listar Pokémons
+**GET** `/pokemons`
+**Retorno 200:**
+```json
+[
+  { "id": 1, "tipo": "pikachu", "treinador": "Thiago", "nivel": 1 },
+  { "id": 2, "tipo": "charizard", "treinador": "Renato", "nivel": 1 }
+]
+```
+
+---
+
+### Batalha
+
+**POST** `/batalhar/:pokemonAId/:pokemonBId`
+
+- O vencedor ganha +1 nível
+- O perdedor perde -1 nível (se chegar a 0, é deletado)
+- Probabilidade de vitória proporcional ao nível
+
+**Retorno 200:**
 ```json
 {
-  "success": true,
-  "data": {
-    "battle_id": "battle_123",
-    "pokemon1": {
-      "id": 1,
-      "tipo": "pikachu",
-      "treinador": "Ash",
-      "nivel": 5
-    },
-    "pokemon2": {
-      "id": 2,
-      "tipo": "charizard",
-      "treinador": "Red",
-      "nivel": 3
-    },
-    "winner": {
-      "id": 1,
-      "tipo": "pikachu",
-      "treinador": "Ash",
-      "nivel": 6
-    },
-    "loser": {
-      "id": 2,
-      "tipo": "charizard",
-      "treinador": "Red",
-      "nivel": 2
-    },
-    "battle_log": [
-      "Pikachu usa Thunderbolt!",
-      "Charizard usa Flamethrower!",
-      "Pikachu vence a batalha!"
-    ]
+  "vencedor": {
+    "id": 1,
+    "tipo": "pikachu",
+    "treinador": "Thiago",
+    "nivel": 2
+  },
+  "perdedor": {
+    "id": 2,
+    "tipo": "charizard",
+    "treinador": "Renato",
+    "nivel": 0
   }
 }
 ```
 
-## 🧮 Lógica de Batalha
+---
 
-### Probabilidade de Vitória
-A chance de vitória é calculada baseada no nível dos Pokémons:
+## 🧪 Testes Automatizados
 
-```
-probabilidade = nivel_pokemon1 / (nivel_pokemon1 + nivel_pokemon2)
-```
-
-**Exemplos:**
-- Nível 2 vs Nível 1: 66.7% vs 33.3%
-- Nível 5 vs Nível 3: 62.5% vs 37.5%
-- Nível 1 vs Nível 1: 50% vs 50%
-
-### Consequências da Batalha
-- **Vencedor**: +1 nível
-- **Perdedor**: -1 nível (deletado se chegar a 0)
-
-## 🔌 Socket.IO Events
-
-### `battle:start`
-Emitido quando uma batalha inicia.
-
-### `battle:update`
-Atualizações em tempo real durante a batalha.
-
-### `battle:end`
-Resultado final da batalha.
-
-## 🧪 Testes
-
+- Testes unitários e de integração cobrindo todos os fluxos do desafio
+- Basta rodar:
 ```bash
-# Executar todos os testes
 npm test
-
-# Testes com watch mode
-npm run test:watch
-
-# Coverage report
-npm run test:coverage
-
-# Testes de integração
-npm run test:integration
 ```
+- Testes de batalha cobrem: vitória, derrota, empate, deleção automática, erros, edge cases
+- Testes CRUD cobrem: criação, alteração, deleção, busca, listagem, validação
 
-## 📊 Estrutura do Banco
+---
 
-### Tabela `pokemons`
-```sql
-CREATE TABLE pokemons (
-  id SERIAL PRIMARY KEY,
-  tipo VARCHAR(20) NOT NULL CHECK (tipo IN ('pikachu', 'charizard', 'mewtwo')),
-  treinador VARCHAR(100) NOT NULL,
-  nivel INTEGER NOT NULL DEFAULT 1 CHECK (nivel > 0),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
+## 🚀 Como rodar localmente
 
-### Tabela `battles`
-```sql
-CREATE TABLE battles (
-  id SERIAL PRIMARY KEY,
-  pokemon1_id INTEGER REFERENCES pokemons(id),
-  pokemon2_id INTEGER REFERENCES pokemons(id),
-  winner_id INTEGER REFERENCES pokemons(id),
-  battle_log JSON,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-## 🚀 Deploy
-
-### Docker
 ```bash
-# Build da imagem
-docker build -t pokemon-backend .
+# Instale dependências
+npm install
 
-# Executar container
-docker run -p 4001:4001 pokemon-backend
+# Configure o banco (Postgres ou SQLite)
+cp .env.example .env
+
+# Rode as migrations e seeds
+npm run migrate && npm run seed
+
+# Rode o servidor
+npm run dev
 ```
 
-### Vercel/Railway
-Configure as variáveis de ambiente e faça deploy diretamente.
+---
 
-## 📝 Scripts Disponíveis
+## 🌐 Deploy
 
-```json
-{
-  "dev": "nodemon src/server.js",
-  "start": "node src/server.js",
-  "test": "jest",
-  "test:watch": "jest --watch",
-  "test:coverage": "jest --coverage",
-  "db:migrate": "knex migrate:latest",
-  "db:seed": "knex seed:run"
-}
-```
+- Docker e docker-compose prontos para uso
+- Deploy automatizado via GitHub Actions (ver .github/workflows/deploy.yml)
 
-## 🔗 Integração com Frontend
+---
 
-O backend está configurado para aceitar requisições do frontend em `http://localhost:3000` e estabelecer conexões WebSocket para atualizações em tempo real das batalhas.
+## 📚 Documentação automática
+
+- Swagger disponível em `/api-docs` quando rodando localmente
+
+---
+
+## 🏆 Diferenciais implementados
+
+- [x] Testes unitários e integração
+- [x] Documentação automática (Swagger)
+- [x] Deploy online
+- [x] CI/CD
+- [x] Interface frontend moderna (ver pasta /frontend)
+
+---
+
+## 👨‍💻 Autor
+
+Desenvolvido por João Vinicius Vitral
+- GitHub: [@JxVtrl](https://github.com/JxVtrl)
+- LinkedIn: [João Vinicius Vitral](https://www.linkedin.com/in/joao-vinicius-vitral/)
 
 ---
 
 <div align="center">
-
-**Backend pronto para batalhas épicas!** ⚔️🔥
-
+Gotta code 'em all! 🎮⚡
 </div>

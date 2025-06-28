@@ -62,13 +62,7 @@ async function batalhar(req, res) {
 
         return res.status(200).json({
             vencedor: vencedorFinal,
-            perdedor: perdedorFinal,
-            batalha: {
-                vencedor: vencedor.tipo,
-                perdedor: perdedor.tipo,
-                probabilidadeVencedor: vencedor.id === pokemonA.id ? chanceA : chanceB,
-                probabilidadePerdedor: perdedor.id === pokemonA.id ? chanceA : chanceB
-            }
+            perdedor: perdedorFinal
         });
     } catch (error) {
         console.error('Erro ao processar batalha:', error);

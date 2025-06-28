@@ -1,4 +1,5 @@
 require('dotenv').config();
+const path = require('path');
 
 module.exports = {
     development: {
@@ -11,10 +12,10 @@ module.exports = {
             port: process.env.DB_PORT,
         },
         migrations: {
-            directory: './src/database/migrations',
+            directory: path.join(__dirname, 'src/database/migrations'),
         },
         seeds: {
-            directory: './src/database/seeds',
+            directory: path.join(__dirname, 'src/database/seeds'),
         },
     },
     test: {
@@ -24,10 +25,10 @@ module.exports = {
         },
         useNullAsDefault: true,
         migrations: {
-            directory: './src/database/migrations',
+            directory: path.join(__dirname, 'src/database/migrations'),
         },
         seeds: {
-            directory: './src/database/seeds',
+            directory: path.join(__dirname, 'src/database/seeds'),
         },
     },
     production: {
@@ -40,10 +41,10 @@ module.exports = {
             port: process.env.DB_PORT,
         },
         migrations: {
-            directory: './src/database/migrations',
+            directory: path.join(__dirname, 'src/database/migrations'),
         },
         seeds: {
-            directory: './src/database/seeds',
+            directory: path.join(__dirname, 'src/database/seeds'),
         },
     },
 };

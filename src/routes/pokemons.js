@@ -9,7 +9,6 @@ const {
     deletePokemon,
     listarMeusPokemons,
 } = require('../controllers/PokemonController');
-const { requireAuth } = require('../middleware/auth');
 
 /**
  * @swagger
