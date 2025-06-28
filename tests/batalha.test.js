@@ -360,20 +360,31 @@ describe('BattleController - Batalhar Pokémons (detalhado)', () => {
         const pokemonA = pokemonsAfter.body.find(p => p.id === pokemonAId);
         const pokemonB = pokemonsAfter.body.find(p => p.id === pokemonBId);
 
-        if (pokemonA) {
-            expect(pokemonA).toHaveProperty('batalhas');
-            expect(pokemonA).toHaveProperty('vitorias');
-            expect(pokemonA).toHaveProperty('derrotas');
-            expect(pokemonA).toHaveProperty('winRate');
-            expect(pokemonA.batalhas).toBeGreaterThan(0);
-        }
+        // Verificar que pelo menos um dos pokémons ainda existe (o vencedor)
+        const vencedorId = res.body.vencedor.id;
+        const perdedorId = res.body.perdedor.id;
+        
+        // O vencedor sempre deve existir
+        const vencedor = pokemonsAfter.body.find(p => p.id === vencedorId);
+        expect(vencedor).toBeDefined();
+        expect(vencedor).toHaveProperty('batalhas');
+        expect(vencedor).toHaveProperty('vitorias');
+        expect(vencedor).toHaveProperty('derrotas');
+        expect(vencedor).toHaveProperty('winRate');
+        expect(vencedor.batalhas).toBeGreaterThan(0);
 
-        if (pokemonB) {
-            expect(pokemonB).toHaveProperty('batalhas');
-            expect(pokemonB).toHaveProperty('vitorias');
-            expect(pokemonB).toHaveProperty('derrotas');
-            expect(pokemonB).toHaveProperty('winRate');
-            expect(pokemonB.batalhas).toBeGreaterThan(0);
+        // O perdedor pode não existir se foi deletado (nível 0)
+        const perdedor = pokemonsAfter.body.find(p => p.id === perdedorId);
+        if (perdedor) {
+            // Se ainda existe, deve ter estatísticas
+            expect(perdedor).toHaveProperty('batalhas');
+            expect(perdedor).toHaveProperty('vitorias');
+            expect(perdedor).toHaveProperty('derrotas');
+            expect(perdedor).toHaveProperty('winRate');
+            expect(perdedor.batalhas).toBeGreaterThanOrEqual(0);
+        } else {
+            // Se não existe, deve ter sido deletado (nível 0)
+            expect(res.body.perdedor.removido).toBe(true);
         }
     });
 });

@@ -79,22 +79,23 @@ async function batalharPokemons(req, res) {
 
         // Verificar se o perdedor ficou com nível 0 ou menor
         if (novoNivelPerdedor <= 0) {
-            // Salvar histórico da batalha ANTES de remover o pokémon
-            console.log('📝 Salvando histórico da batalha...');
+            // CORREÇÃO: Primeiro salvar histórico com pokémon deletado como null, depois deletar
+            console.log('📝 Salvando histórico da batalha antes de deletar pokémon...');
             console.log('📊 Dados da batalha:', {
                 trainer_a_id: pokemonA.treinador,
                 trainer_b_id: pokemonB.treinador,
                 pokemon_a_id: pokemonA.id,
                 pokemon_b_id: pokemonB.id
             });
+            
             await saveBattleHistory({
                 battle_id: `battle_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                 trainer_a_id: parseInt(pokemonA.treinador),
                 trainer_b_id: parseInt(pokemonB.treinador),
                 trainer_a_name: trainerAName,
                 trainer_b_name: trainerBName,
-                pokemon_a_id: pokemonA.id,
-                pokemon_b_id: pokemonB.id,
+                pokemon_a_id: pokemonA.id === perdedor.id ? null : pokemonA.id,
+                pokemon_b_id: pokemonB.id === perdedor.id ? null : pokemonB.id,
                 pokemon_a_type: pokemonA.tipo,
                 pokemon_b_type: pokemonB.tipo,
                 pokemon_a_level_before: pokemonA.nivel,
@@ -108,10 +109,23 @@ async function batalharPokemons(req, res) {
                 rounds_played: 1,
                 finished_at: new Date()
             });
-
-            // Remover pokémon do banco
+            
+            // AGORA deletar o pokémon (após salvar o histórico)
+            console.log(`💀 ${perdedor.tipo} chegou ao nível 0, removendo do banco...`);
+            
+            // CORREÇÃO: Primeiro atualizar todos os registros antigos do histórico que referenciam este pokémon
+            console.log(`🔧 Atualizando registros antigos do histórico...`);
+            await knex('battle_history')
+                .where('pokemon_a_id', perdedor.id)
+                .update({ pokemon_a_id: null });
+            await knex('battle_history')
+                .where('pokemon_b_id', perdedor.id)
+                .update({ pokemon_b_id: null });
+            console.log(`✅ Registros antigos atualizados`);
+            
+            // Agora deletar o pokémon
             await knex('pokemons').where({ id: perdedor.id }).del();
-            console.log(`💀 ${perdedor.tipo} foi removido do banco (nível 0)`);
+            console.log(`✅ ${perdedor.tipo} foi removido do banco com sucesso`);
 
             const resultado = {
                 vencedor: {
@@ -173,8 +187,8 @@ async function batalharPokemons(req, res) {
                 trainer_b_id: parseInt(pokemonB.treinador),
                 trainer_a_name: trainerAName,
                 trainer_b_name: trainerBName,
-                pokemon_a_id: pokemonA.id,
-                pokemon_b_id: pokemonB.id,
+                pokemon_a_id: pokemonA.id === perdedor.id ? null : pokemonA.id,
+                pokemon_b_id: pokemonB.id === perdedor.id ? null : pokemonB.id,
                 pokemon_a_type: pokemonA.tipo,
                 pokemon_b_type: pokemonB.tipo,
                 pokemon_a_level_before: pokemonA.nivel,

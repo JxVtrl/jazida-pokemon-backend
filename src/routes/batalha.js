@@ -172,39 +172,94 @@ router.post('/:battleId/iniciar', requireAuth, async (req, res) => {
             const treinadorPerdedor = sel[perdedor.treinador]?.treinadorNome || perdedor.treinador;
             console.log(`[BATALHA][${battleId}] Vencedor: ${treinadorVencedor} (${vencedor.tipo})`);
             console.log(`[BATALHA][${battleId}] Perdedor: ${treinadorPerdedor} (${perdedor.tipo})`);
-            // Salvar histórico da batalha usando o nome real dos treinadores
-            const battleHistory = {
-                battle_id: battleId,
-                trainer_a_id: treinadorAId,
-                trainer_b_id: treinadorBId,
-                trainer_a_name: treinadorANome,
-                trainer_b_name: treinadorBNome,
-                pokemon_a_id: battlePokemonA.id,
-                pokemon_b_id: battlePokemonB.id,
-                pokemon_a_type: battlePokemonA.tipo,
-                pokemon_b_type: battlePokemonB.tipo,
-                pokemon_a_level_before: battlePokemonA.nivel, // Nível original antes da batalha
-                pokemon_b_level_before: battlePokemonB.nivel, // Nível original antes da batalha
-                pokemon_a_level_after: battlePokemonA.id === vencedor.id ? battlePokemonA.nivel + 1 : Math.max(0, battlePokemonA.nivel - 1),
-                pokemon_b_level_after: battlePokemonB.id === vencedor.id ? battlePokemonB.nivel + 1 : Math.max(0, battlePokemonB.nivel - 1),
-                winner_trainer_id: vencedor.treinador,
-                loser_trainer_id: perdedor.treinador,
-                winner_pokemon_type: vencedor.tipo,
-                loser_pokemon_type: perdedor.tipo,
-                rounds_played: roundAtual - 1,
-                finished_at: new Date()
-            };
-            console.log(`[BATALHA][${battleId}] Dados do histórico:`, JSON.stringify(battleHistory, null, 2));
-            const savedBattle = await saveBattleHistory(battleHistory);
-            console.log(`[BATALHA][${battleId}] ✅ Histórico salvo com sucesso:`, savedBattle.id);
-            // Atualizar níveis no banco
+            
+            // Atualizar níveis dos pokémons
+            console.log(`[BATALHA][${battleId}] Atualizando níveis dos pokémons...`);
+            
+            // Atualizar nível do vencedor
             await db('pokemons').where({ id: vencedor.id }).update({ nivel: vencedor.nivel + 1 });
+            console.log(`[BATALHA][${battleId}] ✅ Vencedor ${vencedor.tipo} subiu para nível ${vencedor.nivel + 1}`);
+            
+            // Verificar se o perdedor deve ser deletado ou apenas perder nível
             let perdedorFinal = { ...perdedor, nivel: perdedor.nivel - 1 };
             if (perdedorFinal.nivel <= 0) {
+                // CORREÇÃO: Primeiro salvar histórico com pokémon deletado como null, depois deletar
+                console.log(`[BATALHA][${battleId}] Salvando histórico antes de deletar pokémon...`);
+                
+                // Salvar histórico da batalha ANTES de deletar o pokémon
+                const battleHistory = {
+                    battle_id: battleId,
+                    trainer_a_id: treinadorAId,
+                    trainer_b_id: treinadorBId,
+                    trainer_a_name: treinadorANome,
+                    trainer_b_name: treinadorBNome,
+                    pokemon_a_id: battlePokemonA.id === perdedor.id ? null : battlePokemonA.id,
+                    pokemon_b_id: battlePokemonB.id === perdedor.id ? null : battlePokemonB.id,
+                    pokemon_a_type: battlePokemonA.tipo,
+                    pokemon_b_type: battlePokemonB.tipo,
+                    pokemon_a_level_before: battlePokemonA.nivel,
+                    pokemon_b_level_before: battlePokemonB.nivel,
+                    pokemon_a_level_after: battlePokemonA.id === vencedor.id ? battlePokemonA.nivel + 1 : 0,
+                    pokemon_b_level_after: battlePokemonB.id === vencedor.id ? battlePokemonB.nivel + 1 : 0,
+                    winner_trainer_id: vencedor.treinador,
+                    loser_trainer_id: perdedor.treinador,
+                    winner_pokemon_type: vencedor.tipo,
+                    loser_pokemon_type: perdedor.tipo,
+                    rounds_played: roundAtual - 1,
+                    finished_at: new Date()
+                };
+                console.log(`[BATALHA][${battleId}] Dados do histórico:`, JSON.stringify(battleHistory, null, 2));
+                const savedBattle = await saveBattleHistory(battleHistory);
+                console.log(`[BATALHA][${battleId}] ✅ Histórico salvo com sucesso:`, savedBattle.id);
+                
+                // AGORA deletar o pokémon (após salvar o histórico)
+                console.log(`[BATALHA][${battleId}] 💀 Perdedor ${perdedor.tipo} chegou ao nível 0, removendo do banco...`);
+                
+                // CORREÇÃO: Primeiro atualizar todos os registros antigos do histórico que referenciam este pokémon
+                console.log(`[BATALHA][${battleId}] 🔧 Atualizando registros antigos do histórico...`);
+                await db('battle_history')
+                    .where('pokemon_a_id', perdedor.id)
+                    .update({ pokemon_a_id: null });
+                await db('battle_history')
+                    .where('pokemon_b_id', perdedor.id)
+                    .update({ pokemon_b_id: null });
+                console.log(`[BATALHA][${battleId}] ✅ Registros antigos atualizados`);
+                
+                // Agora deletar o pokémon
                 await db('pokemons').where({ id: perdedor.id }).del();
+                console.log(`[BATALHA][${battleId}] ✅ Perdedor removido com sucesso`);
             } else {
+                // Atualizar nível do perdedor
                 await db('pokemons').where({ id: perdedor.id }).update({ nivel: perdedorFinal.nivel });
+                console.log(`[BATALHA][${battleId}] ⬇️ Perdedor ${perdedor.tipo} caiu para nível ${perdedorFinal.nivel}`);
+                
+                // Salvar histórico da batalha
+                const battleHistory = {
+                    battle_id: battleId,
+                    trainer_a_id: treinadorAId,
+                    trainer_b_id: treinadorBId,
+                    trainer_a_name: treinadorANome,
+                    trainer_b_name: treinadorBNome,
+                    pokemon_a_id: battlePokemonA.id,
+                    pokemon_b_id: battlePokemonB.id,
+                    pokemon_a_type: battlePokemonA.tipo,
+                    pokemon_b_type: battlePokemonB.tipo,
+                    pokemon_a_level_before: battlePokemonA.nivel,
+                    pokemon_b_level_before: battlePokemonB.nivel,
+                    pokemon_a_level_after: battlePokemonA.id === vencedor.id ? battlePokemonA.nivel + 1 : perdedorFinal.nivel,
+                    pokemon_b_level_after: battlePokemonB.id === vencedor.id ? battlePokemonB.nivel + 1 : perdedorFinal.nivel,
+                    winner_trainer_id: vencedor.treinador,
+                    loser_trainer_id: perdedor.treinador,
+                    winner_pokemon_type: vencedor.tipo,
+                    loser_pokemon_type: perdedor.tipo,
+                    rounds_played: roundAtual - 1,
+                    finished_at: new Date()
+                };
+                console.log(`[BATALHA][${battleId}] Dados do histórico:`, JSON.stringify(battleHistory, null, 2));
+                const savedBattle = await saveBattleHistory(battleHistory);
+                console.log(`[BATALHA][${battleId}] ✅ Histórico salvo com sucesso:`, savedBattle.id);
             }
+            
             // Emitir evento de fim de batalha
             io.to(roomName).emit('battle:end', {
                 winner: { 
@@ -213,7 +268,7 @@ router.post('/:battleId/iniciar', requireAuth, async (req, res) => {
                     treinador: vencedor.treinador // Manter o ID do treinador
                 },
                 loser: { 
-                    ...perdedorFinal, 
+                    ...perdedor, 
                     treinador: perdedor.treinador // Manter o ID do treinador
                 },
                 rounds: roundAtual - 1
