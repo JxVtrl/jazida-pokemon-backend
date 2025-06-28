@@ -5,11 +5,17 @@ const tiposPermitidos = ['pikachu', 'charizard', 'mewtwo'];
 
 // Criar um novo pokémon
 async function createPokemon(req, res) {
-    const { tipo, treinador } = req.body;
-    console.log('🔍 Tentando criar pokémon:', { tipo, treinador });
+    const { tipo } = req.body;
+    // Buscar o ID do treinador autenticado
+    const treinadorId = req.treinadorId || req.user?.id || req.userId;
+    console.log('🔍 Tentando criar pokémon:', { tipo, treinadorId });
 
     if (!tiposPermitidos.includes(tipo)) {
         return res.status(400).json({ error: 'Tipo inválido. Use pikachu, charizard ou mewtwo.' });
+    }
+
+    if (!treinadorId) {
+        return res.status(401).json({ error: 'Não autenticado.' });
     }
 
     try {
@@ -19,7 +25,7 @@ async function createPokemon(req, res) {
         const [novoPokemon] = await knex('pokemons')
             .insert({
                 tipo,
-                treinador,
+                treinador: Number(treinadorId), // Força o campo a ser número
                 nivel: 1
             })
             .returning('*');
@@ -112,15 +118,23 @@ async function deletePokemon(req, res) {
 
 // Lista os pokémons do treinador autenticado
 async function listarMeusPokemons(req, res) {
+    const treinadorId = req.treinadorId || req.user?.id || req.userId;
+    console.log(`[MEUS POKEMONS] Requisição recebida. Treinador ID: ${treinadorId}`);
+    console.log(`[MEUS POKEMONS] req.treinadorId:`, req.treinadorId);
+    console.log(`[MEUS POKEMONS] req.user?.id:`, req.user?.id);
+    console.log(`[MEUS POKEMONS] req.userId:`, req.userId);
+    if (!treinadorId) {
+        console.log(`[MEUS POKEMONS] ❌ Treinador não autenticado`);
+        return res.status(401).json({ error: 'Não autenticado.' });
+    }
     try {
-        const treinador = req.treinadorNome;
-        if (!treinador) {
-            return res.status(401).json({ error: 'Não autenticado.' });
-        }
-        const pokemons = await knex('pokemons').where({ treinador });
-        return res.status(200).json(pokemons);
-    } catch (err) {
-        return res.status(500).json({ error: 'Erro ao buscar pokémons do treinador.' });
+        const db = req.app.get('db') || require('../database/db');
+        const pokemons = await db('pokemons').where('treinador', treinadorId);
+        console.log(`[MEUS POKEMONS] Encontrados ${pokemons.length} pokémons para treinador ${treinadorId}:`, pokemons);
+        return res.json(pokemons);
+    } catch (error) {
+        console.error('[MEUS POKEMONS] Erro ao buscar pokémons:', error);
+        return res.status(500).json({ error: 'Erro ao buscar pokémons.' });
     }
 }
 

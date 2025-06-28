@@ -277,6 +277,11 @@ router.post('/batalha/:battleId/iniciar', async (req, res) => {
 
             // Salvar histórico da batalha
             try {
+                console.log(`[BATALHA][${battleId}] Iniciando salvamento do histórico...`);
+                
+                // Usar a mesma instância do banco
+                const db = require('../database/db');
+                
                 const battleHistory = {
                     battle_id: battleId,
                     trainer_a_id: Object.values(sel)[0]?.treinadorId,
@@ -289,8 +294,8 @@ router.post('/batalha/:battleId/iniciar', async (req, res) => {
                     pokemon_b_type: pokeB.tipo,
                     pokemon_a_level_before: pokeA.nivel, // Nível original antes da batalha
                     pokemon_b_level_before: pokeB.nivel, // Nível original antes da batalha
-                    pokemon_a_level_after: vidaA > 0 ? vencedor.nivel + 1 : perdedor.nivel - 1,
-                    pokemon_b_level_after: vidaB > 0 ? vencedor.nivel + 1 : perdedor.nivel - 1,
+                    pokemon_a_level_after: pokeA.id === vencedor.id ? vencedor.nivel + 1 : perdedor.nivel - 1,
+                    pokemon_b_level_after: pokeB.id === vencedor.id ? vencedor.nivel + 1 : perdedor.nivel - 1,
                     winner_trainer_id: vencedor.treinador,
                     loser_trainer_id: perdedor.treinador,
                     winner_pokemon_type: vencedor.tipo,
@@ -300,10 +305,35 @@ router.post('/batalha/:battleId/iniciar', async (req, res) => {
                 };
 
                 console.log(`[BATALHA][${battleId}] Salvando histórico no banco:`, JSON.stringify(battleHistory, null, 2));
-                await db('battles').insert(battleHistory);
+                
+                // Verificar se a tabela existe
+                const tableExists = await db.schema.hasTable('battles');
+                console.log(`[BATALHA][${battleId}] Tabela 'battles' existe:`, tableExists);
+                
+                if (!tableExists) {
+                    console.error(`[BATALHA][${battleId}] ❌ Tabela 'battles' não existe!`);
+                    return;
+                }
+                
+                // Inserir com transação explícita
+                await db.transaction(async (trx) => {
+                    const result = await trx('battles').insert(battleHistory);
+                    console.log(`[BATALHA][${battleId}] Resultado do insert:`, result);
+                });
+                
                 console.log(`[BATALHA][${battleId}] Histórico salvo no banco de dados`);
+                
+                // Verificar se foi realmente salvo
+                const savedBattle = await db('battles').where('battle_id', battleId).first();
+                console.log(`[BATALHA][${battleId}] Batalha salva verificada:`, savedBattle);
+                
+                // VERIFICAÇÃO EXTRA: Contar total de batalhas após salvar
+                const totalAfterSave = await db('battles').count('* as total');
+                console.log(`[BATALHA][${battleId}] Total de batalhas após salvar:`, totalAfterSave[0].total);
+                
             } catch (historyError) {
                 console.error(`[BATALHA][${battleId}] Erro ao salvar histórico:`, historyError);
+                console.error(`[BATALHA][${battleId}] Stack trace:`, historyError.stack);
             }
 
             // Atualizar níveis no banco
@@ -345,12 +375,30 @@ router.post('/batalha/:battleId/iniciar', async (req, res) => {
 router.get('/batalhas/historico', async (req, res) => {
     const treinadorId = req.treinadorId || req.user?.id || req.userId;
     
+    console.log(`[HISTÓRICO] Requisição recebida. Treinador ID: ${treinadorId}`);
+    console.log(`[HISTÓRICO] req.treinadorId: ${req.treinadorId}`);
+    console.log(`[HISTÓRICO] req.user?.id: ${req.user?.id}`);
+    console.log(`[HISTÓRICO] req.userId: ${req.userId}`);
+    
     if (!treinadorId) {
+        console.log(`[HISTÓRICO] ❌ Treinador não autenticado`);
         return res.status(401).json({ error: 'Não autenticado.' });
     }
 
     try {
-        const db = req.app.get('db') || require('../database/db');
+        // Usar a mesma instância do banco que é usada no salvamento
+        const db = require('../database/db');
+        
+        console.log(`[HISTÓRICO] Buscando batalhas para treinador ${treinadorId}...`);
+        console.log(`[HISTÓRICO] Instância do banco:`, db.client.config);
+        
+        // Primeiro, vamos verificar se há batalhas na tabela
+        const totalBattles = await db('battles').count('* as total');
+        console.log(`[HISTÓRICO] Total de batalhas na tabela:`, totalBattles[0].total);
+        
+        // Verificar todas as batalhas para debug
+        const allBattles = await db('battles').select('*');
+        console.log(`[HISTÓRICO] Todas as batalhas na tabela:`, allBattles);
         
         // Buscar batalhas onde o treinador participou (como A ou B)
         const historico = await db('battles')
@@ -360,6 +408,8 @@ router.get('/batalhas/historico', async (req, res) => {
             })
             .orderBy('finished_at', 'desc')
             .limit(10);
+
+        console.log(`[HISTÓRICO] Encontradas ${historico.length} batalhas para treinador ${treinadorId}:`, historico);
 
         // Formatar dados para o frontend
         const historicoFormatado = historico.map(battle => ({
@@ -376,9 +426,11 @@ router.get('/batalhas/historico', async (req, res) => {
             resultado: battle.winner_trainer_id === treinadorId ? 'victory' : 'defeat'
         }));
 
+        console.log(`[HISTÓRICO] Retornando ${historicoFormatado.length} batalhas formatadas:`, historicoFormatado);
+
         res.json(historicoFormatado);
     } catch (error) {
-        console.error('Erro ao buscar histórico de batalhas:', error);
+        console.error('[HISTÓRICO] Erro ao buscar histórico de batalhas:', error);
         res.status(500).json({ error: 'Erro interno do servidor.' });
     }
 });

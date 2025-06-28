@@ -122,9 +122,9 @@ describe('Pokémons CRUD', () => {
         expect(res.status).toBe(200);
         expect(Array.isArray(res.body)).toBe(true);
 
-        // Verificar que todos os pokémons retornados pertencem ao treinador autenticado
+        // Verificar que todos os pokémons retornados pertencem ao treinador autenticado (ID: 1)
         res.body.forEach(pokemon => {
-            expect(pokemon.treinador).toBe('TestTrainer');
+            expect(pokemon.treinador.toString()).toBe("1");
         });
     });
 });

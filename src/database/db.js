@@ -1,10 +1,12 @@
 const knex = require('knex');
-const config = require('../../knexfile');
+const knexConfig = require('../../knexfile');
 
 const environment = process.env.NODE_ENV || 'development';
+const config = knexConfig[environment];
+
 console.log('🔧 Configuração do banco de dados:');
 console.log('   - Ambiente:', environment);
-console.log('   - Configuração:', JSON.stringify(config[environment], null, 2));
+console.log('   - Configuração:', JSON.stringify(config, null, 2));
 
 // Log das variáveis de ambiente (sem senhas)
 console.log('🌍 Variáveis de ambiente:');
@@ -14,17 +16,15 @@ console.log('   - DB_NAME:', process.env.DB_NAME);
 console.log('   - DB_PORT:', process.env.DB_PORT);
 console.log('   - DB_PASSWORD:', process.env.DB_PASSWORD ? '[HIDDEN]' : 'undefined');
 
-const connection = knex(config[environment]);
+const knexInstance = knex(config);
 
-// Teste de conexão
-connection.raw('SELECT 1')
+// Testar conexão
+knexInstance.raw('SELECT 1')
     .then(() => {
         console.log('✅ Conexão com banco de dados estabelecida com sucesso!');
     })
-    .catch((err) => {
-        console.error('❌ Erro ao conectar com banco de dados:');
-        console.error('   - Mensagem:', err.message);
-        console.error('   - Código:', err.code);
+    .catch((error) => {
+        console.error('❌ Erro ao conectar com banco de dados:', error);
     });
 
-module.exports = connection;
+module.exports = knexInstance;
