@@ -9,6 +9,7 @@
     "migrate": "knex migrate:latest",
     "migrate:rollback": "knex migrate:rollback",
     "seed": "knex seed:run",
+    "build": "node -c src/app.js && node -c src/server.js && echo 'Build completed successfully'",
     "test": "jest"
   },
   "dependencies": {
