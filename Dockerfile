@@ -12,5 +12,5 @@ COPY . .
 
 EXPOSE 4001
 
-# Script de inicialização que aguarda o banco estar pronto
-CMD ["sh", "-c", "echo 'Aguardando banco de dados...' && sleep 10 && npm run setup && npm run dev"]
+# Script de inicialização que aguarda o banco estar pronto e executa migrations
+CMD ["sh", "-c", "echo 'Aguardando banco de dados...' && sleep 10 && npm run setup-docker && npm run dev"]

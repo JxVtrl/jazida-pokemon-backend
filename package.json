@@ -10,6 +10,7 @@
     "migrate": "knex migrate:latest",
     "seed": "knex seed:run",
     "setup": "knex migrate:latest && knex seed:run",
+    "setup-docker": "node -e \"const knex = require('./src/database/db'); knex.raw('DROP SCHEMA public CASCADE; CREATE SCHEMA public;').then(() => knex.destroy())\" && knex migrate:latest && knex seed:run",
     "build": "node -c src/app.js && node -c src/server.js && echo 'Build completed successfully'",
     "prepare": "husky install"
   },
