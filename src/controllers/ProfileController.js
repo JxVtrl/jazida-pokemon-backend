@@ -1,24 +1,7 @@
 const knex = require('../database/db');
-const multer = require('multer');
+const { upload, processImage, deleteImage } = require('../middleware/upload');
 const path = require('path');
-const fs = require('fs');
-const sharp = require('sharp');
-
-// Configuração do multer para upload de imagens (em memória)
-const storage = multer.memoryStorage();
-const upload = multer({
-    storage: storage,
-    limits: {
-        fileSize: 5 * 1024 * 1024 // 5MB para upload original
-    },
-    fileFilter: function (req, file, cb) {
-        if (file.mimetype.startsWith('image/')) {
-            cb(null, true);
-        } else {
-            cb(new Error('Apenas imagens são permitidas!'), false);
-        }
-    }
-});
+const fs = require('fs-extra');
 
 /**
  * Busca o perfil do treinador autenticado
@@ -134,7 +117,7 @@ async function updateProfile(req, res) {
 }
 
 /**
- * Upload de avatar
+ * Upload de avatar usando middleware robusto
  * @param {Object} req - Request object
  * @param {Object} res - Response object
  */
@@ -145,68 +128,66 @@ async function uploadAvatar(req, res) {
         return res.status(401).json({ error: 'Não autenticado.' });
     }
 
-    // Usar multer para processar o upload (em memória)
+    console.log(`🖼️ [AVATAR] Iniciando upload para treinador ID: ${treinadorId}`);
+
+    // Usar multer para processar o upload
     upload.single('avatar')(req, res, async function (err) {
         if (err) {
-            console.error('❌ Erro no upload:', err);
+            console.error('❌ [AVATAR] Erro no upload:', err);
             return res.status(400).json({ error: err.message });
         }
 
         if (!req.file) {
+            console.error('❌ [AVATAR] Nenhum arquivo enviado');
             return res.status(400).json({ error: 'Nenhuma imagem foi enviada.' });
         }
 
+        console.log(`🖼️ [AVATAR] Arquivo recebido: ${req.file.originalname} (${req.file.size} bytes)`);
+
         try {
-            // Converter e comprimir para WebP
-            const maxSize = 200 * 1024; // 200KB
-            const minQuality = 30;
-            let quality = 80;
-            const uploadsDir = path.join(__dirname, '../../uploads/avatars');
-            if (!fs.existsSync(uploadsDir)) {
-                fs.mkdirSync(uploadsDir, { recursive: true });
-            }
-            const timestamp = Date.now();
-            const randomString = Math.random().toString(36).substring(2, 15);
-            const filename = `${timestamp}_${randomString}.webp`;
-            const filepath = path.join(uploadsDir, filename);
+            // Usar o middleware de processamento de imagem
+            const processImageMiddleware = processImage('avatar', 'avatars', 200 * 1024, 80, 512, 512);
+            
+            // Simular o processamento
+            await new Promise((resolve, reject) => {
+                processImageMiddleware(req, res, (error) => {
+                    if (error) reject(error);
+                    else resolve();
+                });
+            });
 
-            let webpBuffer;
-            // Tenta reduzir a qualidade progressivamente
-            while (quality >= minQuality) {
-                webpBuffer = await sharp(req.file.buffer)
-                    .resize(512, 512, { fit: 'inside', withoutEnlargement: true })
-                    .webp({ quality, effort: 6 })
-                    .toBuffer();
-                if (webpBuffer.length <= maxSize) break;
-                quality -= 10;
+            if (!req.processedImage) {
+                throw new Error('Falha no processamento da imagem');
             }
 
-            // Se ainda ficou grande, rejeita
-            if (webpBuffer.length > maxSize) {
-                return res.status(400).json({ error: 'Imagem muito grande mesmo após compressão progressiva. Tamanho máximo: 200KB.' });
+            console.log(`✅ [AVATAR] Imagem processada: ${req.processedImage.url}`);
+
+            // Deletar avatar antigo se existir
+            const treinadorAtual = await knex('trainers')
+                .where({ id: treinadorId })
+                .select(['avatar_url'])
+                .first();
+
+            if (treinadorAtual && treinadorAtual.avatar_url) {
+                await deleteImage(treinadorAtual.avatar_url);
             }
-
-            // Salvar arquivo
-            fs.writeFileSync(filepath, webpBuffer);
-
-            // Gerar URL do avatar
-            const avatarUrl = `/uploads/avatars/${filename}`;
 
             // Atualizar treinador com nova URL do avatar
             const [updatedTrainer] = await knex('trainers')
                 .where({ id: treinadorId })
-                .update({ avatar_url: avatarUrl })
+                .update({ avatar_url: req.processedImage.url })
                 .returning(['id', 'nome', 'avatar_url', 'status_message']);
 
-            console.log(`✅ Avatar atualizado:`, updatedTrainer);
+            console.log(`✅ [AVATAR] Avatar atualizado no banco:`, updatedTrainer);
 
             return res.status(200).json({
                 message: 'Avatar atualizado com sucesso!',
                 trainer: updatedTrainer
             });
+
         } catch (error) {
-            console.error('❌ Erro ao processar/comprimir avatar:', error);
-            return res.status(500).json({ error: 'Erro ao processar/comprimir avatar.' });
+            console.error('❌ [AVATAR] Erro ao processar avatar:', error);
+            return res.status(500).json({ error: 'Erro ao processar avatar.' });
         }
     });
 }
