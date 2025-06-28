@@ -279,26 +279,4 @@ router.put('/:id', updatePokemon);
  */
 router.delete('/:id', deletePokemon);
 
-/**
- * @swagger
- * /me/pokemons:
- *   get:
- *     summary: Lista os pokémons do treinador autenticado
- *     tags: [Pokémons]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Lista de pokémons do treinador autenticado
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Pokemon'
- *       401:
- *         description: Não autenticado
- */
-router.get('/me/pokemons', requireAuth, listarMeusPokemons);
-
 module.exports = router;
