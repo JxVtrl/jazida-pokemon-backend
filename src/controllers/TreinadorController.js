@@ -32,16 +32,28 @@ async function listarPokemonsPorTreinador(req, res) {
 }
 
 /**
- * Lista todos os treinadores únicos no sistema
+ * Lista todos os treinadores únicos no sistema com estatísticas
  * @param {Object} req - Request object
  * @param {Object} res - Response object
  */
 async function listarTreinadores(req, res) {
     try {
-        console.log('🔍 Buscando todos os treinadores...');
+        console.log('🔍 Buscando todos os treinadores com estatísticas...');
 
-        // Buscar todos os treinadores cadastrados
-        const treinadores = await knex('trainers').select('id', 'nome').orderBy('nome', 'asc');
+        // Buscar todos os treinadores cadastrados com estatísticas
+        const treinadores = await knex('trainers')
+            .select([
+                'id', 
+                'nome', 
+                'avatar_url', 
+                'status_message',
+                'total_battles', 
+                'wins', 
+                'losses', 
+                'level', 
+                'experience'
+            ])
+            .orderBy('nome', 'asc');
 
         console.log(`✅ Encontrados ${treinadores.length} treinadores únicos`);
 

@@ -1,4 +1,5 @@
 const knex = require('../database/db');
+const { saveBattleHistory } = require('./BattleHistoryController');
 
 /**
  * Batalha entre dois pokémons
@@ -92,6 +93,29 @@ async function batalharPokemons(req, res) {
                 }
             };
 
+            // Salvar histórico da batalha
+            await saveBattleHistory({
+                battle_id: `battle_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                trainer_a_id: pokemonA.treinador,
+                trainer_b_id: pokemonB.treinador,
+                trainer_a_name: pokemonA.treinador, // Será atualizado com nome real
+                trainer_b_name: pokemonB.treinador, // Será atualizado com nome real
+                pokemon_a_id: pokemonA.id,
+                pokemon_b_id: pokemonB.id,
+                pokemon_a_type: pokemonA.tipo,
+                pokemon_b_type: pokemonB.tipo,
+                pokemon_a_level_before: pokemonA.nivel,
+                pokemon_b_level_before: pokemonB.nivel,
+                pokemon_a_level_after: pokemonA.id === vencedor.id ? novoNivelVencedor : 0,
+                pokemon_b_level_after: pokemonB.id === vencedor.id ? novoNivelVencedor : 0,
+                winner_trainer_id: vencedor.treinador,
+                loser_trainer_id: perdedor.treinador,
+                winner_pokemon_type: vencedor.tipo,
+                loser_pokemon_type: perdedor.tipo,
+                rounds_played: 1,
+                finished_at: new Date()
+            });
+
             return res.status(200).json(resultado);
         } else {
             // Atualizar perdedor
@@ -118,6 +142,29 @@ async function batalharPokemons(req, res) {
                     probabilidadePerdedor: perdedor.id === pokemonA.id ? chanceA : chanceB
                 }
             };
+
+            // Salvar histórico da batalha
+            await saveBattleHistory({
+                battle_id: `battle_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                trainer_a_id: pokemonA.treinador,
+                trainer_b_id: pokemonB.treinador,
+                trainer_a_name: pokemonA.treinador, // Será atualizado com nome real
+                trainer_b_name: pokemonB.treinador, // Será atualizado com nome real
+                pokemon_a_id: pokemonA.id,
+                pokemon_b_id: pokemonB.id,
+                pokemon_a_type: pokemonA.tipo,
+                pokemon_b_type: pokemonB.tipo,
+                pokemon_a_level_before: pokemonA.nivel,
+                pokemon_b_level_before: pokemonB.nivel,
+                pokemon_a_level_after: pokemonA.id === vencedor.id ? novoNivelVencedor : novoNivelPerdedor,
+                pokemon_b_level_after: pokemonB.id === vencedor.id ? novoNivelVencedor : novoNivelPerdedor,
+                winner_trainer_id: vencedor.treinador,
+                loser_trainer_id: perdedor.treinador,
+                winner_pokemon_type: vencedor.tipo,
+                loser_pokemon_type: perdedor.tipo,
+                rounds_played: 1,
+                finished_at: new Date()
+            });
 
             return res.status(200).json(resultado);
         }

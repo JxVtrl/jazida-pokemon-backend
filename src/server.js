@@ -1,4 +1,4 @@
-require('dotenv').config();
+// require('dotenv').config();
 const app = require('./app');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -59,6 +59,13 @@ io.on('connection', (socket) => {
             if (battleRooms.get(roomName).size === 0) {
                 battleRooms.delete(roomName);
             }
+        }
+    });
+
+    socket.on('join-trainer-room', (trainerId) => {
+        if (trainerId) {
+            socket.join(`trainer_${trainerId}`);
+            console.log(`Socket ${socket.id} entrou na sala trainer_${trainerId}`);
         }
     });
 

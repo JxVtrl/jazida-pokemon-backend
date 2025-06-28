@@ -1,101 +1,22 @@
 const express = require('express');
-const { batalhar } = require('../controllers/BatalhaController');
-
 const router = express.Router();
+const { requireAuth } = require('../middleware/auth');
+const { batalharPokemons } = require('../controllers/BattleController');
 
-/**
- * @swagger
- * /batalhar/{pokemonAId}/{pokemonBId}:
- *   post:
- *     summary: Realiza uma batalha entre dois pokémons
- *     description: |
- *       Simula uma batalha entre dois pokémons baseada na proporção dos níveis.
- *       - O vencedor é determinado probabilisticamente baseado nos níveis
- *       - O vencedor ganha +1 nível
- *       - O perdedor perde -1 nível
- *       - Se o perdedor chegar ao nível 0, é deletado do sistema
- *     tags: [Batalhas]
- *     parameters:
- *       - in: path
- *         name: pokemonAId
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID do primeiro pokémon (Pokémon A)
- *       - in: path
- *         name: pokemonBId
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID do segundo pokémon (Pokémon B)
- *     responses:
- *       200:
- *         description: Batalha realizada com sucesso
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 vencedor:
- *                   type: object
- *                   description: Dados do pokémon vencedor após a batalha
- *                   properties:
- *                     id:
- *                       type: integer
- *                       description: ID único do pokémon
- *                     tipo:
- *                       type: string
- *                       description: Tipo do pokémon
- *                     treinador:
- *                       type: string
- *                       description: Nome do treinador
- *                     nivel:
- *                       type: integer
- *                       description: Nível atual do pokémon (aumentou +1)
- *                 perdedor:
- *                   type: object
- *                   description: Dados do pokémon perdedor após a batalha
- *                   properties:
- *                     id:
- *                       type: integer
- *                       description: ID único do pokémon
- *                     tipo:
- *                       type: string
- *                       description: Tipo do pokémon
- *                     treinador:
- *                       type: string
- *                       description: Nome do treinador
- *                     nivel:
- *                       type: integer
- *                       description: Nível atual do pokémon (diminuiu -1, pode ser 0)
- *       404:
- *         description: Um ou ambos os pokémons não foram encontrados
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: "Um ou ambos os pokémons não foram encontrados."
- *       500:
- *         description: Erro interno do servidor
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: "Erro ao processar a batalha."
- */
-router.post('/batalhar/:pokemonAId/:pokemonBId', batalhar);
+// INSTÂNCIA ÚNICA DO BANCO - Garantir que salvamento e consulta usem a mesma conexão
+const db = require('../database/db');
+const { saveBattleHistory } = require('../controllers/BattleHistoryController');
 
 // --- LÓGICA EM MEMÓRIA PARA ESCOLHA DE POKÉMONS ---
 const battleSelections = new Map(); // battleId -> { treinadorA: { id, pokemonId }, treinadorB: { id, pokemonId } }
 
-// POST /batalha/:battleId/iniciar
-router.post('/batalha/:battleId/iniciar', async (req, res) => {
+// --- LÓGICA EM MEMÓRIA PARA DESAFIOS ---
+const pendingChallenges = new Map(); // challengeId -> { challengerId, challengerName, challengedId, challengedName, createdAt }
+
+// ROTAS MAIS ESPECÍFICAS DEVEM VIR PRIMEIRO
+
+// ROTA DE INICIAR BATALHA (DEVE VIR ANTES DA ROTA DE BATALHA DIRETA)
+router.post('/:battleId/iniciar', requireAuth, async (req, res) => {
     const { battleId } = req.params;
     const { pokemonAId } = req.body;
     const treinadorId = req.treinadorId || req.user?.id || req.userId; // ajuste conforme seu middleware
@@ -126,7 +47,7 @@ router.post('/batalha/:battleId/iniciar', async (req, res) => {
 
     // Ambos escolheram: buscar pokémons e iniciar batalha
     console.log(`[BATALHA][${battleId}] Ambos os treinadores escolheram! Iniciando batalha...`);
-    const db = req.app.get('db') || require('../database/db');
+    // Usar a instância única do banco definida no topo do arquivo
     const ids = Object.values(sel).map(s => s.pokemonId);
     const pokemons = await db('pokemons').whereIn('id', ids);
     if (pokemons.length < 2) {
@@ -134,14 +55,17 @@ router.post('/batalha/:battleId/iniciar', async (req, res) => {
         return res.status(404).json({ error: 'Pokémons não encontrados.' });
     }
     
-    // CORREÇÃO: Posicionar pokémons corretamente baseado nos treinadores
-    const treinadores = Object.values(sel);
-    const treinadorA = treinadores[0];
-    const treinadorB = treinadores[1];
+    // CORREÇÃO: Buscar nomes reais dos treinadores
+    const treinadorAId = Object.values(sel)[0]?.treinadorId;
+    const treinadorBId = Object.values(sel)[1]?.treinadorId;
+    const treinadorAData = await db('trainers').where({ id: treinadorAId }).first();
+    const treinadorBData = await db('trainers').where({ id: treinadorBId }).first();
+    const treinadorANome = treinadorAData?.nome || 'Treinador A';
+    const treinadorBNome = treinadorBData?.nome || 'Treinador B';
     
     // Encontrar qual pokémon pertence a qual treinador
-    const pokemonA = pokemons.find(p => p.id === treinadorA.pokemonId);
-    const pokemonB = pokemons.find(p => p.id === treinadorB.pokemonId);
+    const pokemonA = pokemons.find(p => p.id === treinadorAId ? sel[treinadorAId].pokemonId : null) || pokemons[0];
+    const pokemonB = pokemons.find(p => p.id === treinadorBId ? sel[treinadorBId].pokemonId : null) || pokemons[1];
     
     if (!pokemonA || !pokemonB) {
         console.log(`[BATALHA][${battleId}] ❌ Erro ao mapear pokémons aos treinadores`);
@@ -152,14 +76,14 @@ router.post('/batalha/:battleId/iniciar', async (req, res) => {
     // E que o campo treinador contenha o ID do treinador, não o nome
     const battlePokemonA = { 
         ...pokemonA, 
-        treinador: treinadorA.treinadorId, // Usar ID do treinador
+        treinador: treinadorAId, // Usar ID do treinador
         vida: 100, 
         vidaMaxima: 100, 
         status: 'ready' 
     };
     const battlePokemonB = { 
         ...pokemonB, 
-        treinador: treinadorB.treinadorId, // Usar ID do treinador
+        treinador: treinadorBId, // Usar ID do treinador
         vida: 100, 
         vidaMaxima: 100, 
         status: 'ready' 
@@ -179,8 +103,8 @@ router.post('/batalha/:battleId/iniciar', async (req, res) => {
     const io = req.app.get('io');
     const roomName = `batalha-${battleId}`;
     console.log(`[BATALHA][${battleId}] Emitindo evento 'battle:start' para sala ${roomName}`);
-    console.log(`[BATALHA][${battleId}] Treinador A (${treinadorA.treinadorNome}): ${battlePokemonA.tipo} (ID: ${battlePokemonA.id})`);
-    console.log(`[BATALHA][${battleId}] Treinador B (${treinadorB.treinadorNome}): ${battlePokemonB.tipo} (ID: ${battlePokemonB.id})`);
+    console.log(`[BATALHA][${battleId}] Treinador A (${treinadorANome}): ${battlePokemonA.tipo} (ID: ${battlePokemonA.id})`);
+    console.log(`[BATALHA][${battleId}] Treinador B (${treinadorBNome}): ${battlePokemonB.tipo} (ID: ${battlePokemonB.id})`);
     io.to(roomName).emit('battle:start', {
         battleId,
         ...battleState
@@ -204,39 +128,25 @@ router.post('/batalha/:battleId/iniciar', async (req, res) => {
             while (vidaA > 0 && vidaB > 0 && roundAtual <= maxRounds) {
                 try {
                     console.log(`[BATALHA][${battleId}] Iniciando round ${roundAtual} - Vida A: ${vidaA}, Vida B: ${vidaB}`);
-                    
                     // Determinar quem ataca primeiro (baseado em velocidade/aleatório)
                     const atacantePrimeiro = Math.random() > 0.5 ? 'A' : 'B';
                     let danoA = 0;
                     let danoB = 0;
-                    
                     if (atacantePrimeiro === 'A') {
-                        // A ataca B
                         danoA = calcularDano(pokeA.nivel);
                         vidaB = Math.max(0, vidaB - danoA);
-                        console.log(`[BATALHA][${battleId}] Round ${roundAtual}: A atacou B causando ${danoA} de dano. Vida B: ${vidaB}`);
-                        
-                        // B ataca A (se ainda vivo)
                         if (vidaB > 0) {
                             danoB = calcularDano(pokeB.nivel);
                             vidaA = Math.max(0, vidaA - danoB);
-                            console.log(`[BATALHA][${battleId}] Round ${roundAtual}: B atacou A causando ${danoB} de dano. Vida A: ${vidaA}`);
                         }
                     } else {
-                        // B ataca A
                         danoB = calcularDano(pokeB.nivel);
                         vidaA = Math.max(0, vidaA - danoB);
-                        console.log(`[BATALHA][${battleId}] Round ${roundAtual}: B atacou A causando ${danoB} de dano. Vida A: ${vidaA}`);
-                        
-                        // A ataca B (se ainda vivo)
                         if (vidaA > 0) {
                             danoA = calcularDano(pokeA.nivel);
                             vidaB = Math.max(0, vidaB - danoA);
-                            console.log(`[BATALHA][${battleId}] Round ${roundAtual}: A atacou B causando ${danoA} de dano. Vida B: ${vidaB}`);
                         }
                     }
-
-                    // Emitir evento do round
                     io.to(roomName).emit('battle:round', {
                         round: roundAtual,
                         pokemonA: { ...pokeA, vida: vidaA },
@@ -245,19 +155,9 @@ router.post('/batalha/:battleId/iniciar', async (req, res) => {
                         danoA,
                         danoB
                     });
-                    console.log(`[BATALHA][${battleId}] Round ${roundAtual} emitido com sucesso`);
-
-                    // Verificar se alguém foi derrotado
-                    if (vidaA <= 0 || vidaB <= 0) {
-                        console.log(`[BATALHA][${battleId}] Batalha terminou no round ${roundAtual}!`);
-                        break;
-                    }
-
+                    if (vidaA <= 0 || vidaB <= 0) break;
                     roundAtual++;
-                    
-                    // Aguardar 1 segundo antes do próximo round
                     if (vidaA > 0 && vidaB > 0 && roundAtual <= maxRounds) {
-                        console.log(`[BATALHA][${battleId}] Aguardando 1 segundo antes do próximo round...`);
                         await new Promise(resolve => setTimeout(resolve, 1000));
                     }
                 } catch (roundError) {
@@ -265,77 +165,38 @@ router.post('/batalha/:battleId/iniciar', async (req, res) => {
                     break;
                 }
             }
-
             // Determinar vencedor (quem ainda tem vida > 0)
             const vencedor = vidaA > 0 ? pokeA : pokeB;
             const perdedor = vencedor.id === pokeA.id ? pokeB : pokeA;
             const treinadorVencedor = sel[vencedor.treinador]?.treinadorNome || vencedor.treinador;
             const treinadorPerdedor = sel[perdedor.treinador]?.treinadorNome || perdedor.treinador;
-
             console.log(`[BATALHA][${battleId}] Vencedor: ${treinadorVencedor} (${vencedor.tipo})`);
             console.log(`[BATALHA][${battleId}] Perdedor: ${treinadorPerdedor} (${perdedor.tipo})`);
-
-            // Salvar histórico da batalha
-            try {
-                console.log(`[BATALHA][${battleId}] Iniciando salvamento do histórico...`);
-                
-                // Usar a mesma instância do banco
-                const db = require('../database/db');
-                
-                const battleHistory = {
-                    battle_id: battleId,
-                    trainer_a_id: Object.values(sel)[0]?.treinadorId,
-                    trainer_b_id: Object.values(sel)[1]?.treinadorId,
-                    trainer_a_name: Object.values(sel)[0]?.treinadorNome,
-                    trainer_b_name: Object.values(sel)[1]?.treinadorNome,
-                    pokemon_a_id: pokeA.id,
-                    pokemon_b_id: pokeB.id,
-                    pokemon_a_type: pokeA.tipo,
-                    pokemon_b_type: pokeB.tipo,
-                    pokemon_a_level_before: pokeA.nivel, // Nível original antes da batalha
-                    pokemon_b_level_before: pokeB.nivel, // Nível original antes da batalha
-                    pokemon_a_level_after: pokeA.id === vencedor.id ? vencedor.nivel + 1 : perdedor.nivel - 1,
-                    pokemon_b_level_after: pokeB.id === vencedor.id ? vencedor.nivel + 1 : perdedor.nivel - 1,
-                    winner_trainer_id: vencedor.treinador,
-                    loser_trainer_id: perdedor.treinador,
-                    winner_pokemon_type: vencedor.tipo,
-                    loser_pokemon_type: perdedor.tipo,
-                    rounds_played: roundAtual - 1,
-                    finished_at: new Date()
-                };
-
-                console.log(`[BATALHA][${battleId}] Salvando histórico no banco:`, JSON.stringify(battleHistory, null, 2));
-                
-                // Verificar se a tabela existe
-                const tableExists = await db.schema.hasTable('battles');
-                console.log(`[BATALHA][${battleId}] Tabela 'battles' existe:`, tableExists);
-                
-                if (!tableExists) {
-                    console.error(`[BATALHA][${battleId}] ❌ Tabela 'battles' não existe!`);
-                    return;
-                }
-                
-                // Inserir com transação explícita
-                await db.transaction(async (trx) => {
-                    const result = await trx('battles').insert(battleHistory);
-                    console.log(`[BATALHA][${battleId}] Resultado do insert:`, result);
-                });
-                
-                console.log(`[BATALHA][${battleId}] Histórico salvo no banco de dados`);
-                
-                // Verificar se foi realmente salvo
-                const savedBattle = await db('battles').where('battle_id', battleId).first();
-                console.log(`[BATALHA][${battleId}] Batalha salva verificada:`, savedBattle);
-                
-                // VERIFICAÇÃO EXTRA: Contar total de batalhas após salvar
-                const totalAfterSave = await db('battles').count('* as total');
-                console.log(`[BATALHA][${battleId}] Total de batalhas após salvar:`, totalAfterSave[0].total);
-                
-            } catch (historyError) {
-                console.error(`[BATALHA][${battleId}] Erro ao salvar histórico:`, historyError);
-                console.error(`[BATALHA][${battleId}] Stack trace:`, historyError.stack);
-            }
-
+            // Salvar histórico da batalha usando o nome real dos treinadores
+            const battleHistory = {
+                battle_id: battleId,
+                trainer_a_id: treinadorAId,
+                trainer_b_id: treinadorBId,
+                trainer_a_name: treinadorANome,
+                trainer_b_name: treinadorBNome,
+                pokemon_a_id: battlePokemonA.id,
+                pokemon_b_id: battlePokemonB.id,
+                pokemon_a_type: battlePokemonA.tipo,
+                pokemon_b_type: battlePokemonB.tipo,
+                pokemon_a_level_before: battlePokemonA.nivel, // Nível original antes da batalha
+                pokemon_b_level_before: battlePokemonB.nivel, // Nível original antes da batalha
+                pokemon_a_level_after: battlePokemonA.id === vencedor.id ? battlePokemonA.nivel + 1 : Math.max(0, battlePokemonA.nivel - 1),
+                pokemon_b_level_after: battlePokemonB.id === vencedor.id ? battlePokemonB.nivel + 1 : Math.max(0, battlePokemonB.nivel - 1),
+                winner_trainer_id: vencedor.treinador,
+                loser_trainer_id: perdedor.treinador,
+                winner_pokemon_type: vencedor.tipo,
+                loser_pokemon_type: perdedor.tipo,
+                rounds_played: roundAtual - 1,
+                finished_at: new Date()
+            };
+            console.log(`[BATALHA][${battleId}] Dados do histórico:`, JSON.stringify(battleHistory, null, 2));
+            const savedBattle = await saveBattleHistory(battleHistory);
+            console.log(`[BATALHA][${battleId}] ✅ Histórico salvo com sucesso:`, savedBattle.id);
             // Atualizar níveis no banco
             await db('pokemons').where({ id: vencedor.id }).update({ nivel: vencedor.nivel + 1 });
             let perdedorFinal = { ...perdedor, nivel: perdedor.nivel - 1 };
@@ -344,7 +205,6 @@ router.post('/batalha/:battleId/iniciar', async (req, res) => {
             } else {
                 await db('pokemons').where({ id: perdedor.id }).update({ nivel: perdedorFinal.nivel });
             }
-
             // Emitir evento de fim de batalha
             io.to(roomName).emit('battle:end', {
                 winner: { 
@@ -371,72 +231,8 @@ router.post('/batalha/:battleId/iniciar', async (req, res) => {
     return res.json({ ok: true, battle: battleState });
 });
 
-// GET /batalhas/historico - Histórico de batalhas do treinador
-router.get('/batalhas/historico', async (req, res) => {
-    const treinadorId = req.treinadorId || req.user?.id || req.userId;
-    
-    console.log(`[HISTÓRICO] Requisição recebida. Treinador ID: ${treinadorId}`);
-    console.log(`[HISTÓRICO] req.treinadorId: ${req.treinadorId}`);
-    console.log(`[HISTÓRICO] req.user?.id: ${req.user?.id}`);
-    console.log(`[HISTÓRICO] req.userId: ${req.userId}`);
-    
-    if (!treinadorId) {
-        console.log(`[HISTÓRICO] ❌ Treinador não autenticado`);
-        return res.status(401).json({ error: 'Não autenticado.' });
-    }
-
-    try {
-        // Usar a mesma instância do banco que é usada no salvamento
-        const db = require('../database/db');
-        
-        console.log(`[HISTÓRICO] Buscando batalhas para treinador ${treinadorId}...`);
-        console.log(`[HISTÓRICO] Instância do banco:`, db.client.config);
-        
-        // Primeiro, vamos verificar se há batalhas na tabela
-        const totalBattles = await db('battles').count('* as total');
-        console.log(`[HISTÓRICO] Total de batalhas na tabela:`, totalBattles[0].total);
-        
-        // Verificar todas as batalhas para debug
-        const allBattles = await db('battles').select('*');
-        console.log(`[HISTÓRICO] Todas as batalhas na tabela:`, allBattles);
-        
-        // Buscar batalhas onde o treinador participou (como A ou B)
-        const historico = await db('battles')
-            .where(function() {
-                this.where('trainer_a_id', treinadorId)
-                    .orWhere('trainer_b_id', treinadorId);
-            })
-            .orderBy('finished_at', 'desc')
-            .limit(10);
-
-        console.log(`[HISTÓRICO] Encontradas ${historico.length} batalhas para treinador ${treinadorId}:`, historico);
-
-        // Formatar dados para o frontend
-        const historicoFormatado = historico.map(battle => ({
-            id: battle.battle_id,
-            data: battle.finished_at,
-            rounds: battle.rounds_played,
-            euSouA: battle.trainer_a_id === treinadorId,
-            meuPokemon: battle.trainer_a_id === treinadorId ? battle.pokemon_a_type : battle.pokemon_b_type,
-            meuNivelAntes: battle.trainer_a_id === treinadorId ? battle.pokemon_a_level_before : battle.pokemon_b_level_before,
-            meuNivelDepois: battle.trainer_a_id === treinadorId ? battle.pokemon_a_level_after : battle.pokemon_b_level_after,
-            adversario: battle.trainer_a_id === treinadorId ? battle.trainer_b_name : battle.trainer_a_name,
-            pokemonAdversario: battle.trainer_a_id === treinadorId ? battle.pokemon_b_type : battle.pokemon_a_type,
-            vencedor: battle.winner_trainer_id === treinadorId ? 'eu' : 'adversario',
-            resultado: battle.winner_trainer_id === treinadorId ? 'victory' : 'defeat'
-        }));
-
-        console.log(`[HISTÓRICO] Retornando ${historicoFormatado.length} batalhas formatadas:`, historicoFormatado);
-
-        res.json(historicoFormatado);
-    } catch (error) {
-        console.error('[HISTÓRICO] Erro ao buscar histórico de batalhas:', error);
-        res.status(500).json({ error: 'Erro interno do servidor.' });
-    }
-});
-
-// GET /batalha/:battleId - Buscar batalha por ID
-router.get('/batalha/:battleId', async (req, res) => {
+// GET /:battleId - Buscar batalha por ID
+router.get('/:battleId', requireAuth, async (req, res) => {
     const { battleId } = req.params;
     const treinadorId = req.treinadorId || req.user?.id || req.userId;
     
@@ -475,5 +271,134 @@ router.get('/batalha/:battleId', async (req, res) => {
         return res.status(500).json({ error: 'Erro interno do servidor.' });
     }
 });
+
+// ROTAS DE DESAFIO
+router.post('/desafiar/:trainerId', requireAuth, async (req, res) => {
+    const challengerId = req.treinadorId || req.user?.id || req.userId;
+    const challengerName = req.treinadorNome || req.user?.nome || req.userName;
+    const challengedId = parseInt(req.params.trainerId);
+
+    if (!challengerId || !challengerName) {
+        return res.status(401).json({ error: 'Não autenticado.' });
+    }
+
+    if (challengerId === challengedId) {
+        return res.status(400).json({ error: 'Não é possível desafiar a si mesmo.' });
+    }
+
+    try {
+        // Verificar se o treinador desafiado existe
+        const challengedTrainer = await db('trainers')
+            .where({ id: challengedId })
+            .select(['id', 'nome'])
+            .first();
+
+        if (!challengedTrainer) {
+            return res.status(404).json({ error: 'Treinador não encontrado.' });
+        }
+
+        // Gerar ID único para o desafio
+        const challengeId = `challenge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        // Armazenar desafio pendente
+        pendingChallenges.set(challengeId, {
+            challengerId,
+            challengerName,
+            challengedId,
+            challengedName: challengedTrainer.nome,
+            createdAt: new Date()
+        });
+
+        // Enviar notificação via socket para o treinador desafiado
+        const io = req.app.get('io');
+        if (io) {
+            io.to(`trainer_${challengedId}`).emit('battle-invite', {
+                type: 'challenged',
+                challengeId,
+                challengerId,
+                challengerName,
+                challengedId,
+                challengedName: challengedTrainer.nome,
+                createdAt: new Date()
+            });
+        }
+
+        console.log(`⚔️ Desafio enviado: ${challengerName} (${challengerId}) -> ${challengedTrainer.nome} (${challengedId})`);
+
+        return res.status(200).json({
+            message: 'Desafio enviado com sucesso!',
+            challengeId
+        });
+
+    } catch (error) {
+        console.error('❌ Erro ao enviar desafio:', error);
+        return res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
+});
+
+router.post('/aceitar/:battleId', requireAuth, async (req, res) => {
+    const challengedId = req.treinadorId || req.user?.id || req.userId;
+    const challengedName = req.treinadorNome || req.user?.nome || req.userName;
+    const challengeId = req.params.battleId;
+
+    if (!challengedId || !challengedName) {
+        return res.status(401).json({ error: 'Não autenticado.' });
+    }
+
+    try {
+        // Buscar o desafio pendente
+        const challenge = pendingChallenges.get(challengeId);
+        if (!challenge) {
+            return res.status(404).json({ error: 'Desafio não encontrado ou expirado.' });
+        }
+
+        // Verificar se o treinador autenticado é realmente o desafiado
+        if (challenge.challengedId !== challengedId) {
+            return res.status(403).json({ error: 'Você não pode aceitar este desafio.' });
+        }
+
+        // Remover desafio da lista pendente
+        pendingChallenges.delete(challengeId);
+
+        // Gerar ID único para a batalha
+        const battleId = `battle_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        // Notificar ambos os treinadores via socket
+        const io = req.app.get('io');
+        if (io) {
+            // Notificar o desafiante
+            io.to(`trainer_${challenge.challengerId}`).emit('battle-accepted', {
+                battleId,
+                challengerId: challenge.challengerId,
+                challengerName: challenge.challengerName,
+                challengedId: challenge.challengedId,
+                challengedName: challenge.challengedName
+            });
+
+            // Notificar o desafiado
+            io.to(`trainer_${challenge.challengedId}`).emit('battle-accepted', {
+                battleId,
+                challengerId: challenge.challengerId,
+                challengerName: challenge.challengerName,
+                challengedId: challenge.challengedId,
+                challengedName: challenge.challengedName
+            });
+        }
+
+        console.log(`✅ Desafio aceito: ${challenge.challengerName} vs ${challenge.challengedName} -> Batalha ${battleId}`);
+
+        return res.status(200).json({
+            message: 'Desafio aceito! Redirecionando para batalha...',
+            battleId
+        });
+
+    } catch (error) {
+        console.error('❌ Erro ao aceitar desafio:', error);
+        return res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
+});
+
+// ROTA DE BATALHA DIRETA (DEVE VIR POR ÚLTIMO)
+router.post('/:pokemonAId/:pokemonBId', requireAuth, batalharPokemons);
 
 module.exports = router;

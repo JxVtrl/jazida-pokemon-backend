@@ -3,13 +3,15 @@ const cors = require('cors');
 const pokemonsRoutes = require('./routes/pokemons');
 const batalhaRoutes = require('./routes/batalha');
 const treinadoresRoutes = require('./routes/treinadores');
-const battleRoutes = require('./routes/battle');
 const authRoutes = require('./routes/auth');
 const { requireAuth } = require('./middleware/auth');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger');
-const desafiarRoutes = require('./routes/desafiar');
+const battleHistoryRoutes = require('./routes/battle-history');
+const profileRoutes = require('./routes/profile');
+const { serveStaticFiles } = require('./middleware/upload');
 const { listarMeusPokemons, listPokemons } = require('./controllers/PokemonController');
+const { batalharPokemons } = require('./controllers/BattleController');
 
 const app = express();
 
@@ -25,6 +27,9 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Servir arquivos estáticos (uploads)
+serveStaticFiles(app);
+
 // Rotas públicas (sem autenticação)
 app.use('/auth', authRoutes);
 
@@ -34,9 +39,9 @@ app.get('/pokemons/public', listPokemons);
 // Rotas protegidas (com autenticação)
 app.use('/pokemons', requireAuth, pokemonsRoutes);
 app.use('/treinadores', requireAuth, treinadoresRoutes);
-app.use('/batalhar', requireAuth, battleRoutes);
-app.use('/', requireAuth, batalhaRoutes);
-app.use('/desafiar', desafiarRoutes);
+app.use('/batalha', requireAuth, batalhaRoutes);
+app.use('/battle-history', requireAuth, battleHistoryRoutes);
+app.use('/profile', requireAuth, profileRoutes);
 
 // Rota específica para pokémons do usuário autenticado
 app.get('/me/pokemons', requireAuth, listarMeusPokemons);
