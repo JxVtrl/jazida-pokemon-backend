@@ -3,8 +3,10 @@ const router = express.Router();
 
 const {
     listarPokemonsPorTreinador,
-    listarTreinadores
+    listarTreinadores,
+    listarTreinadoresOnline
 } = require('../controllers/TreinadorController');
+const { requireAuth } = require('../middleware/auth');
 
 /**
  * @swagger
@@ -41,6 +43,68 @@ const {
  *                   example: "Erro ao listar treinadores."
  */
 router.get('/', listarTreinadores);
+
+/**
+ * @swagger
+ * /treinadores/online:
+ *   get:
+ *     summary: Lista treinadores online
+ *     description: Retorna apenas os treinadores que estão conectados via socket
+ *     tags: [Treinadores]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de treinadores online retornada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 treinadores:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                         description: ID do treinador
+ *                       nome:
+ *                         type: string
+ *                         description: Nome do treinador
+ *                       avatar_url:
+ *                         type: string
+ *                         description: URL do avatar
+ *                       status_message:
+ *                         type: string
+ *                         description: Mensagem de status
+ *                       total_battles:
+ *                         type: integer
+ *                         description: Total de batalhas
+ *                       wins:
+ *                         type: integer
+ *                         description: Vitórias
+ *                       losses:
+ *                         type: integer
+ *                         description: Derrotas
+ *                       level:
+ *                         type: integer
+ *                         description: Nível atual
+ *                       experience:
+ *                         type: integer
+ *                         description: Experiência atual
+ *                 total:
+ *                   type: integer
+ *                   description: Total de treinadores online
+ *                 message:
+ *                   type: string
+ *                   description: Mensagem informativa
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno do servidor
+ */
+router.get('/online', requireAuth, listarTreinadoresOnline);
 
 /**
  * @swagger

@@ -10,8 +10,8 @@ exports.up = function (knex) {
         table.integer('trainer_b_id').unsigned().references('id').inTable('trainers').onDelete('CASCADE');
         table.string('trainer_a_name').notNullable();
         table.string('trainer_b_name').notNullable();
-        table.integer('pokemon_a_id').unsigned().references('id').inTable('pokemons').onDelete('CASCADE');
-        table.integer('pokemon_b_id').unsigned().references('id').inTable('pokemons').onDelete('CASCADE');
+        table.integer('pokemon_a_id').unsigned().references('id').inTable('pokemons').onDelete('SET NULL');
+        table.integer('pokemon_b_id').unsigned().references('id').inTable('pokemons').onDelete('SET NULL');
         table.string('pokemon_a_type').notNullable();
         table.string('pokemon_b_type').notNullable();
         table.integer('pokemon_a_level_before').notNullable();

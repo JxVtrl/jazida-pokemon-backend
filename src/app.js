@@ -10,7 +10,7 @@ const swaggerSpec = require('./swagger');
 const battleHistoryRoutes = require('./routes/battle-history');
 const profileRoutes = require('./routes/profile');
 const { serveStaticFiles } = require('./middleware/upload');
-const { listarMeusPokemons, listPokemons } = require('./controllers/PokemonController');
+const { listarMeusPokemons, listPokemons, createPokemon, getPokemonById, updatePokemon, deletePokemon } = require('./controllers/PokemonController');
 const { batalharPokemons } = require('./controllers/BattleController');
 
 const app = express();
@@ -34,10 +34,15 @@ serveStaticFiles(app);
 app.use('/auth', authRoutes);
 
 // Rota pública para listar todos os pokémons (para visualização) - APENAS GET
-app.get('/pokemons/public', listPokemons);
+app.get('/pokemons', listPokemons);
 
 // Rotas protegidas (com autenticação)
-app.use('/pokemons', requireAuth, pokemonsRoutes);
+// Rotas de pokémons que precisam de autenticação (exceto GET que já está acima)
+app.post('/pokemons', requireAuth, createPokemon);
+app.get('/pokemons/:id', requireAuth, getPokemonById);
+app.put('/pokemons/:id', requireAuth, updatePokemon);
+app.delete('/pokemons/:id', requireAuth, deletePokemon);
+
 app.use('/treinadores', requireAuth, treinadoresRoutes);
 app.use('/batalha', requireAuth, batalhaRoutes);
 app.use('/battle-history', requireAuth, battleHistoryRoutes);

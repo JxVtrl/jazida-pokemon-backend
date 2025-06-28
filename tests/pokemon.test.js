@@ -127,4 +127,71 @@ describe('Pokémons CRUD', () => {
             expect(pokemon.treinador.toString()).toBe("1");
         });
     });
+
+    it('deve retornar estatísticas completas no endpoint /pokemons', async () => {
+        // Cria um pokémon
+        await request(app)
+            .post('/pokemons')
+            .set('Authorization', `Bearer ${authToken}`)
+            .send({ tipo: 'pikachu', treinador: 'TestTrainer' });
+
+        const res = await request(app)
+            .get('/pokemons')
+            .set('Authorization', `Bearer ${authToken}`);
+
+        expect(res.status).toBe(200);
+        expect(Array.isArray(res.body)).toBe(true);
+        expect(res.body.length).toBeGreaterThan(0);
+        const poke = res.body[0];
+        expect(poke).toHaveProperty('batalhas');
+        expect(poke).toHaveProperty('vitorias');
+        expect(poke).toHaveProperty('derrotas');
+        expect(poke).toHaveProperty('winRate');
+        expect(poke).toHaveProperty('treinador_nome');
+    });
+
+    it('deve retornar estatísticas completas no endpoint /me/pokemons', async () => {
+        // Cria um pokémon
+        await request(app)
+            .post('/pokemons')
+            .set('Authorization', `Bearer ${authToken}`)
+            .send({ tipo: 'charizard', treinador: 'TestTrainer' });
+
+        const res = await request(app)
+            .get('/me/pokemons')
+            .set('Authorization', `Bearer ${authToken}`);
+
+        expect(res.status).toBe(200);
+        expect(Array.isArray(res.body)).toBe(true);
+        expect(res.body.length).toBeGreaterThan(0);
+        const poke = res.body[0];
+        expect(poke).toHaveProperty('batalhas');
+        expect(poke).toHaveProperty('vitorias');
+        expect(poke).toHaveProperty('derrotas');
+        expect(poke).toHaveProperty('winRate');
+        expect(poke).toHaveProperty('treinador_nome');
+    });
+
+    it('deve retornar estatísticas completas no endpoint /treinadores/:nome/pokemons', async () => {
+        // Cria um pokémon para o treinador
+        await request(app)
+            .post('/pokemons')
+            .set('Authorization', `Bearer ${authToken}`)
+            .send({ tipo: 'mewtwo', treinador: 'TestTrainer' });
+
+        const res = await request(app)
+            .get('/treinadores/TestTrainer/pokemons')
+            .set('Authorization', `Bearer ${authToken}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty('pokemons');
+        expect(Array.isArray(res.body.pokemons)).toBe(true);
+        expect(res.body.pokemons.length).toBeGreaterThan(0);
+        const poke = res.body.pokemons[0];
+        expect(poke).toHaveProperty('batalhas');
+        expect(poke).toHaveProperty('vitorias');
+        expect(poke).toHaveProperty('derrotas');
+        expect(poke).toHaveProperty('winRate');
+        expect(poke).toHaveProperty('treinador_nome');
+    });
 });

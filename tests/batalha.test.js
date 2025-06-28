@@ -308,4 +308,72 @@ describe('BattleController - Batalhar Pokémons (detalhado)', () => {
             expect(perdedorNoBanco.nivel).toBe(res.body.perdedor.nivel);
         }
     });
+
+    it('deve atualizar estatísticas dos treinadores após batalha', async () => {
+        // Verificar estatísticas iniciais
+        const trainerBefore = await knex('trainers')
+            .where({ id: treinadorId })
+            .select(['total_battles', 'wins', 'losses', 'experience', 'level'])
+            .first();
+
+        // Realizar batalha
+        const res = await request(app)
+            .post(`/batalha/${pokemonAId}/${pokemonBId}`)
+            .set('Authorization', `Bearer ${authToken}`);
+
+        expect(res.status).toBe(200);
+
+        // Verificar estatísticas após batalha
+        const trainerAfter = await knex('trainers')
+            .where({ id: treinadorId })
+            .select(['total_battles', 'wins', 'losses', 'experience', 'level'])
+            .first();
+
+        // Verificar que as estatísticas foram atualizadas
+        expect(trainerAfter.total_battles).toBeGreaterThan(trainerBefore.total_battles);
+        
+        // Verificar que ou vitórias ou derrotas aumentaram
+        const totalWinsLosses = trainerAfter.wins + trainerAfter.losses;
+        const previousTotalWinsLosses = trainerBefore.wins + trainerBefore.losses;
+        expect(totalWinsLosses).toBeGreaterThan(previousTotalWinsLosses);
+        
+        // Verificar que a experiência aumentou
+        expect(trainerAfter.experience).toBeGreaterThan(trainerBefore.experience);
+    });
+
+    it('deve atualizar estatísticas dos pokémons após batalha', async () => {
+        // Realizar batalha
+        const res = await request(app)
+            .post(`/batalha/${pokemonAId}/${pokemonBId}`)
+            .set('Authorization', `Bearer ${authToken}`);
+
+        expect(res.status).toBe(200);
+
+        // Buscar pokémons atualizados
+        const pokemonsAfter = await request(app)
+            .get('/pokemons')
+            .set('Authorization', `Bearer ${authToken}`);
+
+        expect(pokemonsAfter.status).toBe(200);
+
+        // Verificar que os pokémons têm estatísticas
+        const pokemonA = pokemonsAfter.body.find(p => p.id === pokemonAId);
+        const pokemonB = pokemonsAfter.body.find(p => p.id === pokemonBId);
+
+        if (pokemonA) {
+            expect(pokemonA).toHaveProperty('batalhas');
+            expect(pokemonA).toHaveProperty('vitorias');
+            expect(pokemonA).toHaveProperty('derrotas');
+            expect(pokemonA).toHaveProperty('winRate');
+            expect(pokemonA.batalhas).toBeGreaterThan(0);
+        }
+
+        if (pokemonB) {
+            expect(pokemonB).toHaveProperty('batalhas');
+            expect(pokemonB).toHaveProperty('vitorias');
+            expect(pokemonB).toHaveProperty('derrotas');
+            expect(pokemonB).toHaveProperty('winRate');
+            expect(pokemonB.batalhas).toBeGreaterThan(0);
+        }
+    });
 });

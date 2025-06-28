@@ -25,7 +25,7 @@ async function createPokemon(req, res) {
         const [novoPokemon] = await knex('pokemons')
             .insert({
                 tipo,
-                treinador: Number(treinadorId), // Força o campo a ser número
+                treinador: parseInt(treinadorId), // Força o campo a ser número inteiro
                 nivel: 1
             })
             .returning('*');
@@ -53,7 +53,67 @@ async function listPokemons(req, res) {
         const pokemons = await knex('pokemons');
         console.log(`✅ Query executada com sucesso. ${pokemons.length} pokémons encontrados:`, pokemons);
 
-        return res.status(200).json(pokemons);
+        // Buscar nomes dos treinadores (apenas para IDs numéricos válidos)
+        const treinadorIds = [...new Set(pokemons.map(p => p.treinador))];
+        const numericTrainerIds = treinadorIds.filter(id => !isNaN(id) && id !== null && id !== undefined);
+        
+        let treinadorMap = {};
+        if (numericTrainerIds.length > 0) {
+            const treinadores = await knex('trainers').whereIn('id', numericTrainerIds).select('id', 'nome');
+            treinadorMap = Object.fromEntries(treinadores.map(t => [t.id, t.nome]));
+        }
+
+        // Buscar estatísticas de batalhas para cada pokémon
+        const pokemonIds = pokemons.map(p => p.id);
+        let battles = [];
+        if (pokemonIds.length > 0) {
+            battles = await knex('battle_history')
+                .whereIn('pokemon_a_id', pokemonIds)
+                .orWhereIn('pokemon_b_id', pokemonIds);
+        }
+
+        // Mapear estatísticas
+        const statsMap = {};
+        for (const p of pokemons) {
+            const battlesForPokemon = battles.filter(b => b.pokemon_a_id === p.id || b.pokemon_b_id === p.id);
+            const wins = battlesForPokemon.filter(b => {
+                // O pokémon venceu se for o vencedor da batalha
+                if (b.pokemon_a_id === p.id && b.pokemon_a_level_after > b.pokemon_a_level_before) return true;
+                if (b.pokemon_b_id === p.id && b.pokemon_b_level_after > b.pokemon_b_level_before) return true;
+                return false;
+            }).length;
+            const losses = battlesForPokemon.filter(b => {
+                // O pokémon perdeu se o nível diminuiu
+                if (b.pokemon_a_id === p.id && b.pokemon_a_level_after < b.pokemon_a_level_before) return true;
+                if (b.pokemon_b_id === p.id && b.pokemon_b_level_after < b.pokemon_b_level_before) return true;
+                return false;
+            }).length;
+            const total = battlesForPokemon.length;
+            const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
+            statsMap[p.id] = { total, wins, losses, winRate };
+        }
+
+        // Montar resposta
+        const pokemonsWithStats = pokemons.map(p => {
+            // Determinar o nome do treinador
+            let treinadorNome = p.treinador;
+            
+            // Se o treinador for um número (ID), buscar o nome
+            if (!isNaN(p.treinador)) {
+                treinadorNome = treinadorMap[p.treinador] || p.treinador;
+            }
+            
+            return {
+                ...p,
+                treinador_nome: treinadorNome,
+                batalhas: statsMap[p.id]?.total || 0,
+                vitorias: statsMap[p.id]?.wins || 0,
+                derrotas: statsMap[p.id]?.losses || 0,
+                winRate: statsMap[p.id]?.winRate || 0
+            };
+        });
+
+        return res.status(200).json(pokemonsWithStats);
     } catch (err) {
         console.error('❌ Erro ao listar pokémons:');
         console.error('   - Mensagem:', err.message);
@@ -128,10 +188,49 @@ async function listarMeusPokemons(req, res) {
         return res.status(401).json({ error: 'Não autenticado.' });
     }
     try {
-        const db = req.app.get('db') || require('../database/db');
-        const pokemons = await db('pokemons').where('treinador', treinadorId);
+        const pokemons = await knex('pokemons').where('treinador', treinadorId);
         console.log(`[MEUS POKEMONS] Encontrados ${pokemons.length} pokémons para treinador ${treinadorId}:`, pokemons);
-        return res.json(pokemons);
+
+        // Buscar nome do treinador
+        const treinador = await knex('trainers').where({ id: treinadorId }).select('id', 'nome').first();
+        const treinadorNome = treinador ? treinador.nome : treinadorId;
+
+        // Buscar estatísticas de batalhas para cada pokémon
+        const pokemonIds = pokemons.map(p => p.id);
+        const battles = await knex('battle_history')
+            .whereIn('pokemon_a_id', pokemonIds)
+            .orWhereIn('pokemon_b_id', pokemonIds);
+
+        // Mapear estatísticas
+        const statsMap = {};
+        for (const p of pokemons) {
+            const battlesForPokemon = battles.filter(b => b.pokemon_a_id === p.id || b.pokemon_b_id === p.id);
+            const wins = battlesForPokemon.filter(b => {
+                if (b.pokemon_a_id === p.id && b.pokemon_a_level_after > b.pokemon_a_level_before) return true;
+                if (b.pokemon_b_id === p.id && b.pokemon_b_level_after > b.pokemon_b_level_before) return true;
+                return false;
+            }).length;
+            const losses = battlesForPokemon.filter(b => {
+                if (b.pokemon_a_id === p.id && b.pokemon_a_level_after < b.pokemon_a_level_before) return true;
+                if (b.pokemon_b_id === p.id && b.pokemon_b_level_after < b.pokemon_b_level_before) return true;
+                return false;
+            }).length;
+            const total = battlesForPokemon.length;
+            const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
+            statsMap[p.id] = { total, wins, losses, winRate };
+        }
+
+        // Montar resposta
+        const pokemonsWithStats = pokemons.map(p => ({
+            ...p,
+            treinador_nome: treinadorNome,
+            batalhas: statsMap[p.id]?.total || 0,
+            vitorias: statsMap[p.id]?.wins || 0,
+            derrotas: statsMap[p.id]?.losses || 0,
+            winRate: statsMap[p.id]?.winRate || 0
+        }));
+
+        return res.json(pokemonsWithStats);
     } catch (error) {
         console.error('[MEUS POKEMONS] Erro ao buscar pokémons:', error);
         return res.status(500).json({ error: 'Erro ao buscar pokémons.' });

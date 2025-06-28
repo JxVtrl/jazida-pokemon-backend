@@ -148,17 +148,34 @@ describe('Sistema de Autenticação', () => {
             expect(res.status).toBe(200);
         });
 
-        it('deve negar acesso a /pokemons sem token', async () => {
+        it('deve permitir acesso a /pokemons sem token (rota pública)', async () => {
             const res = await request(app)
                 .get('/pokemons');
+
+            expect(res.status).toBe(200);
+            expect(Array.isArray(res.body)).toBe(true);
+        });
+
+        it('deve permitir acesso a /pokemons com token inválido (rota pública)', async () => {
+            const res = await request(app)
+                .get('/pokemons')
+                .set('Authorization', 'Bearer token_invalido');
+
+            expect(res.status).toBe(200);
+            expect(Array.isArray(res.body)).toBe(true);
+        });
+
+        it('deve negar acesso a /me/pokemons sem token', async () => {
+            const res = await request(app)
+                .get('/me/pokemons');
 
             expect(res.status).toBe(401);
             expect(res.body.error).toBe('Token de autenticação não fornecido.');
         });
 
-        it('deve negar acesso a /pokemons com token inválido', async () => {
+        it('deve negar acesso a /me/pokemons com token inválido', async () => {
             const res = await request(app)
-                .get('/pokemons')
+                .get('/me/pokemons')
                 .set('Authorization', 'Bearer token_invalido');
 
             expect(res.status).toBe(401);

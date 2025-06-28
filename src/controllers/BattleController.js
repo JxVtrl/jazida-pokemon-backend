@@ -41,7 +41,15 @@ async function batalharPokemons(req, res) {
             });
         }
 
+        // Buscar nomes dos treinadores
+        const treinadorA = await knex('trainers').where({ id: pokemonA.treinador }).select('id', 'nome').first();
+        const treinadorB = await knex('trainers').where({ id: pokemonB.treinador }).select('id', 'nome').first();
+        
+        const trainerAName = treinadorA ? treinadorA.nome : `Treinador ${pokemonA.treinador}`;
+        const trainerBName = treinadorB ? treinadorB.nome : `Treinador ${pokemonB.treinador}`;
+
         console.log(`📊 Níveis dos pokémons: ${pokemonA.tipo} (${pokemonA.nivel}) vs ${pokemonB.tipo} (${pokemonB.nivel})`);
+        console.log(`👥 Treinadores: ${trainerAName} vs ${trainerBName}`);
 
         // Calcular probabilidades com base no nível
         const totalNivel = pokemonA.nivel + pokemonB.nivel;
@@ -71,6 +79,36 @@ async function batalharPokemons(req, res) {
 
         // Verificar se o perdedor ficou com nível 0 ou menor
         if (novoNivelPerdedor <= 0) {
+            // Salvar histórico da batalha ANTES de remover o pokémon
+            console.log('📝 Salvando histórico da batalha...');
+            console.log('📊 Dados da batalha:', {
+                trainer_a_id: pokemonA.treinador,
+                trainer_b_id: pokemonB.treinador,
+                pokemon_a_id: pokemonA.id,
+                pokemon_b_id: pokemonB.id
+            });
+            await saveBattleHistory({
+                battle_id: `battle_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                trainer_a_id: parseInt(pokemonA.treinador),
+                trainer_b_id: parseInt(pokemonB.treinador),
+                trainer_a_name: trainerAName,
+                trainer_b_name: trainerBName,
+                pokemon_a_id: pokemonA.id,
+                pokemon_b_id: pokemonB.id,
+                pokemon_a_type: pokemonA.tipo,
+                pokemon_b_type: pokemonB.tipo,
+                pokemon_a_level_before: pokemonA.nivel,
+                pokemon_b_level_before: pokemonB.nivel,
+                pokemon_a_level_after: pokemonA.id === vencedor.id ? novoNivelVencedor : 0,
+                pokemon_b_level_after: pokemonB.id === vencedor.id ? novoNivelVencedor : 0,
+                winner_trainer_id: parseInt(vencedor.treinador),
+                loser_trainer_id: parseInt(perdedor.treinador),
+                winner_pokemon_type: vencedor.tipo,
+                loser_pokemon_type: perdedor.tipo,
+                rounds_played: 1,
+                finished_at: new Date()
+            });
+
             // Remover pokémon do banco
             await knex('pokemons').where({ id: perdedor.id }).del();
             console.log(`💀 ${perdedor.tipo} foi removido do banco (nível 0)`);
@@ -92,29 +130,6 @@ async function batalharPokemons(req, res) {
                     probabilidadePerdedor: perdedor.id === pokemonA.id ? chanceA : chanceB
                 }
             };
-
-            // Salvar histórico da batalha
-            await saveBattleHistory({
-                battle_id: `battle_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                trainer_a_id: pokemonA.treinador,
-                trainer_b_id: pokemonB.treinador,
-                trainer_a_name: pokemonA.treinador, // Será atualizado com nome real
-                trainer_b_name: pokemonB.treinador, // Será atualizado com nome real
-                pokemon_a_id: pokemonA.id,
-                pokemon_b_id: pokemonB.id,
-                pokemon_a_type: pokemonA.tipo,
-                pokemon_b_type: pokemonB.tipo,
-                pokemon_a_level_before: pokemonA.nivel,
-                pokemon_b_level_before: pokemonB.nivel,
-                pokemon_a_level_after: pokemonA.id === vencedor.id ? novoNivelVencedor : 0,
-                pokemon_b_level_after: pokemonB.id === vencedor.id ? novoNivelVencedor : 0,
-                winner_trainer_id: vencedor.treinador,
-                loser_trainer_id: perdedor.treinador,
-                winner_pokemon_type: vencedor.tipo,
-                loser_pokemon_type: perdedor.tipo,
-                rounds_played: 1,
-                finished_at: new Date()
-            });
 
             return res.status(200).json(resultado);
         } else {
@@ -144,12 +159,20 @@ async function batalharPokemons(req, res) {
             };
 
             // Salvar histórico da batalha
-            await saveBattleHistory({
-                battle_id: `battle_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            console.log('📝 Salvando histórico da batalha...');
+            console.log('📊 Dados da batalha:', {
                 trainer_a_id: pokemonA.treinador,
                 trainer_b_id: pokemonB.treinador,
-                trainer_a_name: pokemonA.treinador, // Será atualizado com nome real
-                trainer_b_name: pokemonB.treinador, // Será atualizado com nome real
+                pokemon_a_id: pokemonA.id,
+                pokemon_b_id: pokemonB.id
+            });
+            
+            await saveBattleHistory({
+                battle_id: `battle_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                trainer_a_id: parseInt(pokemonA.treinador),
+                trainer_b_id: parseInt(pokemonB.treinador),
+                trainer_a_name: trainerAName,
+                trainer_b_name: trainerBName,
                 pokemon_a_id: pokemonA.id,
                 pokemon_b_id: pokemonB.id,
                 pokemon_a_type: pokemonA.tipo,
@@ -158,8 +181,8 @@ async function batalharPokemons(req, res) {
                 pokemon_b_level_before: pokemonB.nivel,
                 pokemon_a_level_after: pokemonA.id === vencedor.id ? novoNivelVencedor : novoNivelPerdedor,
                 pokemon_b_level_after: pokemonB.id === vencedor.id ? novoNivelVencedor : novoNivelPerdedor,
-                winner_trainer_id: vencedor.treinador,
-                loser_trainer_id: perdedor.treinador,
+                winner_trainer_id: parseInt(vencedor.treinador),
+                loser_trainer_id: parseInt(perdedor.treinador),
                 winner_pokemon_type: vencedor.tipo,
                 loser_pokemon_type: perdedor.tipo,
                 rounds_played: 1,
