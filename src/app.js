@@ -35,8 +35,8 @@ serveStaticFiles(app);
 // Rotas públicas (sem autenticação)
 app.use('/auth', authRoutes);
 
-// Rota pública para listar todos os pokémons (para visualização) - APENAS GET
-app.get('/pokemons/public', listPokemons);
+// Rota específica para pokémons do usuário autenticado
+app.get('/me/pokemons', requireAuth, listarMeusPokemons);
 
 // Rotas protegidas (com autenticação)
 app.use('/pokemons', requireAuth, pokemonsRoutes);
@@ -44,9 +44,6 @@ app.use('/treinadores', requireAuth, treinadoresRoutes);
 app.use('/batalha', requireAuth, batalhaRoutes);
 app.use('/battle-history', requireAuth, battleHistoryRoutes);
 app.use('/profile', requireAuth, profileRoutes);
-
-// Rota específica para pokémons do usuário autenticado
-app.get('/me/pokemons', requireAuth, listarMeusPokemons);
 
 // Documentação Swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
