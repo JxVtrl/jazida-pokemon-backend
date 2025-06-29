@@ -14,7 +14,7 @@ API REST em Node.js para gerenciamento de Pokémons e sistema de batalhas com l�
 
 **Exemplo de variável de ambiente:**
 ```env
-PORT=4001
+PORT=4002
 NODE_ENV=production
 DB_HOST=postgres
 DB_PORT=5432
@@ -47,7 +47,7 @@ Crie um arquivo `.env` na raiz do projeto:
 
 ```env
 # Servidor
-PORT=4001
+PORT=4002
 NODE_ENV=development
 
 # Banco de dados
@@ -256,7 +256,7 @@ CREATE TABLE battles (
 docker build -t pokemon-backend .
 
 # Executar container
-docker run -p 4001:4001 pokemon-backend
+docker run -p 4002:4002 pokemon-backend
 ```
 
 ### Vercel/Railway

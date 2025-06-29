@@ -55,11 +55,11 @@ Inclua o header: \`Authorization: Bearer <seu_token>\`
         },
         servers: [
             {
-                url: 'http://localhost:4001',
+                url: 'http://localhost:4002',
                 description: 'Servidor de Desenvolvimento'
             },
             {
-                url: 'https://jazida.api.majorssolutions.com.br',
+                url: 'https://jazida-hom.api.majorssolutions.com.br',
                 description: 'Servidor de Produção'
             }
         ],

@@ -15,7 +15,7 @@ RUN mkdir -p /app/uploads/avatars && \
     chmod -R 755 /app/uploads && \
     chmod +x /app/init.sh
 
-EXPOSE 4001
+EXPOSE 4002
 
 # Script de inicialização que aguarda o banco estar pronto
 CMD ["sh", "-c", "echo 'Aguardando banco de dados...' && sleep 10 && ./init.sh"]
