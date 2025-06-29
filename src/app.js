@@ -18,7 +18,7 @@ const app = express();
 app.use(cors({
     origin: [
         'https://jazida.pokemon.majorssolutions.com.br',
-        'https://jazida-hom.pokemon.majorssolutions.com.br',
+        'https://jazida.pokemon-hom.majorssolutions.com.br',
         'https://jazida.api.majorssolutions.com.br',
         'https://jazida-hom.api.majorssolutions.com.br',
         'https://jazida-pokemon-frontend.vercel.app',
