@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-and-deploy:
-    name: Build and Deploy to VPS
+    name: Build and Deploy to VPS (docker-compose)
     runs-on: ubuntu-latest
 
     steps:
@@ -35,9 +35,7 @@ jobs:
           username: root
           key: ${{ secrets.VPS_PRIVATE_KEY }}
           script: |
-            docker rm -f jazida-backend-hom || true
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/jazida-pokemon-backend:hom
-            docker run -d \
-              --name jazida-backend-hom \
-              -p 4002:4002 \
-              ${{ secrets.DOCKERHUB_USERNAME }}/jazida-pokemon-backend:hom
+            cd /opt/jazida-backend-hom
+            docker-compose pull
+            docker-compose down
+            docker-compose up -d --force-recreate
