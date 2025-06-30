@@ -22,6 +22,7 @@ app.use(cors({
         'https://jazida.api.majorssolutions.com.br',
         'https://jazida-hom.api.majorssolutions.com.br',
         'https://jazida-pokemon-frontend.vercel.app',
+        'https://jazida-pokemon-desafio.netlify.app',
         'http://localhost:5173'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
