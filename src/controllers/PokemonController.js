@@ -138,4 +138,49 @@ async function listarMeusPokemons(req, res) {
     }
 }
 
-module.exports = { createPokemon, listPokemons, getPokemonById, updatePokemon, deletePokemon, listarMeusPokemons };
+// Lista os pokémons do treinador autenticado com estatísticas
+async function listarMeusPokemonsComEstatisticas(req, res) {
+    const treinadorId = req.treinadorId || req.user?.id || req.userId;
+    if (!treinadorId) {
+        return res.status(401).json({ error: 'Não autenticado.' });
+    }
+    try {
+        const db = req.app.get('db') || require('../database/db');
+        const pokemons = await db('pokemons').where('treinador_id', treinadorId);
+        // Para cada pokémon, buscar estatísticas
+        const statsPromises = pokemons.map(async (pokemon) => {
+            // Total de batalhas
+            const totalBattles = await db('battle_history')
+                .where('pokemon_a_id', pokemon.id)
+                .orWhere('pokemon_b_id', pokemon.id)
+                .count('* as count');
+            // Vitórias
+            const wins = await db('battle_history')
+                .where(function() {
+                    this.where('pokemon_a_id', pokemon.id).andWhere('winner_pokemon_type', pokemon.tipo)
+                })
+                .orWhere(function() {
+                    this.where('pokemon_b_id', pokemon.id).andWhere('winner_pokemon_type', pokemon.tipo)
+                })
+                .count('* as count');
+            const total = Number(totalBattles[0].count);
+            const vitorias = Number(wins[0].count);
+            const derrotas = total - vitorias;
+            const winRate = total > 0 ? Math.round((vitorias / total) * 100) : 0;
+            return {
+                ...pokemon,
+                batalhas: total,
+                vitorias,
+                derrotas,
+                winRate
+            };
+        });
+        const pokemonsComStats = await Promise.all(statsPromises);
+        return res.json(pokemonsComStats);
+    } catch (error) {
+        console.error('[MEUS POKEMONS ESTATISTICAS] Erro ao buscar pokémons:', error);
+        return res.status(500).json({ error: 'Erro ao buscar pokémons.' });
+    }
+}
+
+module.exports = { createPokemon, listPokemons, getPokemonById, updatePokemon, deletePokemon, listarMeusPokemons, listarMeusPokemonsComEstatisticas };

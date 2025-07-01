@@ -10,7 +10,7 @@ const swaggerSpec = require('./swagger');
 const battleHistoryRoutes = require('./routes/battle-history');
 const profileRoutes = require('./routes/profile');
 const { serveStaticFiles } = require('./middleware/upload');
-const { listarMeusPokemons, listPokemons } = require('./controllers/PokemonController');
+const { listarMeusPokemons, listPokemons, listarMeusPokemonsComEstatisticas } = require('./controllers/PokemonController');
 const { battleController } = require('./controllers/BattleController');
 
 const app = express();
@@ -38,6 +38,7 @@ app.use('/auth', authRoutes);
 
 // Rota específica para pokémons do usuário autenticado
 app.get('/me/pokemons', requireAuth, listarMeusPokemons);
+app.get('/me/pokemons/estatisticas', requireAuth, listarMeusPokemonsComEstatisticas);
 
 // Rotas protegidas (com autenticação)
 app.use('/pokemons', requireAuth, pokemonsRoutes);

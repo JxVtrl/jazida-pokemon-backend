@@ -8,6 +8,7 @@ const {
     updatePokemon,
     deletePokemon,
     listarMeusPokemons,
+    listarMeusPokemonsComEstatisticas,
 } = require('../controllers/PokemonController');
 const { requireAuth } = require('../middleware/auth');
 
@@ -300,5 +301,27 @@ router.delete('/:id', deletePokemon);
  *         description: Não autenticado
  */
 router.get('/me/pokemons', requireAuth, listarMeusPokemons);
+
+/**
+ * @swagger
+ * /me/pokemons/estatisticas:
+ *   get:
+ *     summary: Lista os pokémons do treinador autenticado com estatísticas
+ *     tags: [Pokémons]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de pokémons do treinador autenticado com estatísticas
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Pokemon'
+ *       401:
+ *         description: Não autenticado
+ */
+router.get('/me/pokemons/estatisticas', requireAuth, listarMeusPokemonsComEstatisticas);
 
 module.exports = router;

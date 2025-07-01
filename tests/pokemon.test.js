@@ -139,4 +139,35 @@ describe('Pokémons CRUD', () => {
             expect(pokemon.treinador_id).toBe(treinadorId);
         });
     });
+
+    it('deve listar pokémons do treinador autenticado com estatísticas', async () => {
+        // Criar pokémon para o treinador autenticado
+        await request(app)
+            .post('/pokemons')
+            .set('Authorization', `Bearer ${authToken}`)
+            .send({ tipo: 'mewtwo' });
+
+        // Buscar pokémons com estatísticas
+        const res = await request(app)
+            .get('/me/pokemons/estatisticas')
+            .set('Authorization', `Bearer ${authToken}`);
+
+        expect(res.status).toBe(200);
+        expect(Array.isArray(res.body)).toBe(true);
+
+        // Verificar que todos os pokémons retornados pertencem ao treinador autenticado
+        res.body.forEach(pokemon => {
+            expect(pokemon.treinador_id).toBe(treinadorId);
+            // Verificar se as estatísticas estão presentes
+            expect(pokemon).toHaveProperty('batalhas');
+            expect(pokemon).toHaveProperty('vitorias');
+            expect(pokemon).toHaveProperty('derrotas');
+            expect(pokemon).toHaveProperty('winRate');
+            // Verificar se os valores são números
+            expect(typeof pokemon.batalhas).toBe('number');
+            expect(typeof pokemon.vitorias).toBe('number');
+            expect(typeof pokemon.derrotas).toBe('number');
+            expect(typeof pokemon.winRate).toBe('number');
+        });
+    });
 });
