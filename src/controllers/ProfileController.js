@@ -18,6 +18,7 @@ async function getProfile(req, res) {
     try {
         console.log(`🔍 Buscando perfil do treinador ID: ${treinadorId}`);
 
+        // Debug: verificar se o treinador existe
         const treinador = await knex('trainers')
             .where({ id: treinadorId })
             .select([
@@ -27,8 +28,11 @@ async function getProfile(req, res) {
             .first();
 
         if (!treinador) {
+            console.log(`❌ Treinador ID ${treinadorId} não encontrado`);
             return res.status(404).json({ error: 'Treinador não encontrado.' });
         }
+
+        console.log(`📊 Dados brutos do treinador:`, treinador);
 
         // Calcular estatísticas
         const winRate = treinador.total_battles > 0 
