@@ -23,6 +23,9 @@ describe('Batalha de Pokémons', () => {
             .send({ nome: 'BatalhaTest', senha: '123456' });
 
         authToken = registerRes.body.token;
+        if (!registerRes.body.treinador || !registerRes.body.treinador.id) {
+            throw new Error('Falha ao registrar treinador: resposta inesperada: ' + JSON.stringify(registerRes.body));
+        }
         treinadorId = registerRes.body.treinador.id;
     });
 
@@ -90,6 +93,9 @@ describe('Sistema de Desafios', () => {
 
         challengerToken = challengerRes.body.token;
         challengedToken = challengedRes.body.token;
+        if (!challengerRes.body.treinador || !challengerRes.body.treinador.id || !challengedRes.body.treinador || !challengedRes.body.treinador.id) {
+            throw new Error('Falha ao registrar treinadores: resposta inesperada: ' + JSON.stringify({challenger: challengerRes.body, challenged: challengedRes.body}));
+        }
         challengerId = challengerRes.body.treinador.id;
         challengedId = challengedRes.body.treinador.id;
     });
@@ -181,6 +187,9 @@ describe('BattleController - Batalhar Pokémons (detalhado)', () => {
             .send({ nome: 'BattleTrainer', senha: '123456' });
 
         authToken = registerRes.body.token;
+        if (!registerRes.body.treinador || !registerRes.body.treinador.id) {
+            throw new Error('Falha ao registrar treinador: resposta inesperada: ' + JSON.stringify(registerRes.body));
+        }
         treinadorId = registerRes.body.treinador.id;
     });
 
