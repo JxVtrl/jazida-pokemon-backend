@@ -25,7 +25,7 @@ async function createPokemon(req, res) {
         const [novoPokemon] = await knex('pokemons')
             .insert({
                 tipo,
-                treinador: Number(treinadorId), // Força o campo a ser número
+                treinador_id: Number(treinadorId), // Usar treinador_id em vez de treinador
                 nivel: 1
             })
             .returning('*');
@@ -83,15 +83,15 @@ async function getPokemonById(req, res) {
 // Atualizar um pokémon
 async function updatePokemon(req, res) {
     const { id } = req.params;
-    const { treinador } = req.body;
+    const { treinador_id } = req.body;
 
-    // Validar se o campo treinador foi enviado
-    if (!treinador) {
-        return res.status(400).json({ error: "O campo 'treinador' é obrigatório." });
+    // Validar se o campo treinador_id foi enviado
+    if (!treinador_id) {
+        return res.status(400).json({ error: "O campo 'treinador_id' é obrigatório." });
     }
 
     try {
-        const updated = await knex('pokemons').where({ id }).update({ treinador });
+        const updated = await knex('pokemons').where({ id }).update({ treinador_id });
         if (!updated) return res.status(404).json({ error: 'Pokémon não encontrado.' });
 
         return res.status(204).send();
@@ -129,7 +129,7 @@ async function listarMeusPokemons(req, res) {
     }
     try {
         const db = req.app.get('db') || require('../database/db');
-        const pokemons = await db('pokemons').where('treinador', treinadorId);
+        const pokemons = await db('pokemons').where('treinador_id', treinadorId); // Usar treinador_id
         console.log(`[MEUS POKEMONS] Encontrados ${pokemons.length} pokémons para treinador ${treinadorId}:`, pokemons);
         return res.json(pokemons);
     } catch (error) {

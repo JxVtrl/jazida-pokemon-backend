@@ -31,11 +31,11 @@ describe('Batalha de Pokémons', () => {
         await knex('pokemons').del();
         // Criar pokémons para teste usando o ID do treinador autenticado
         [pokemonA] = await knex('pokemons').insert([
-            { tipo: 'pikachu', treinador: treinadorId, nivel: 1 }
+            { tipo: 'pikachu', treinador_id: treinadorId, nivel: 1 }
         ]).returning('*');
 
         [pokemonB] = await knex('pokemons').insert([
-            { tipo: 'charizard', treinador: treinadorId, nivel: 2 }
+            { tipo: 'charizard', treinador_id: treinadorId, nivel: 2 }
         ]).returning('*');
     });
 
@@ -189,15 +189,15 @@ describe('BattleController - Batalhar Pokémons (detalhado)', () => {
         await knex('pokemons').del();
         // Criar pokémons para teste usando o ID do treinador autenticado
         const [pokemonA] = await knex('pokemons').insert([
-            { tipo: 'pikachu', treinador: treinadorId, nivel: 1 }
+            { tipo: 'pikachu', treinador_id: treinadorId, nivel: 1 }
         ]).returning('*');
 
         const [pokemonB] = await knex('pokemons').insert([
-            { tipo: 'charizard', treinador: treinadorId, nivel: 2 }
+            { tipo: 'charizard', treinador_id: treinadorId, nivel: 2 }
         ]).returning('*');
 
         const [pokemonC] = await knex('pokemons').insert([
-            { tipo: 'mewtwo', treinador: treinadorId, nivel: 1 }
+            { tipo: 'mewtwo', treinador_id: treinadorId, nivel: 1 }
         ]).returning('*');
 
         pokemonAId = pokemonA.id;
@@ -248,7 +248,7 @@ describe('BattleController - Batalhar Pokémons (detalhado)', () => {
     it('deve remover pokémon quando nível chega a 0', async () => {
         // Criar um pokémon com nível 1 para perder
         const [pokemonFraco] = await knex('pokemons').insert([
-            { tipo: 'pikachu', treinador: treinadorId, nivel: 1 }
+            { tipo: 'pikachu', treinador_id: treinadorId, nivel: 1 }
         ]).returning('*');
 
         const res = await request(app)

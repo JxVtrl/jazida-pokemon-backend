@@ -13,28 +13,42 @@ afterAll(async () => {
 
 describe('Treinadores', () => {
     let authToken;
+    let ashId, mistyId, brockId;
 
     beforeEach(async () => {
         // Limpar tabelas antes de cada teste
         await knex('pokemons').del();
         await knex('trainers').del();
-        // Inserir treinadores de teste (exceto TrainerTest)
-        await knex('trainers').insert([
-          { nome: 'Ash', senha_hash: 'dummy' },
-          { nome: 'Misty', senha_hash: 'dummy' },
+        
+        // Inserir treinadores de teste
+        const [ash] = await knex('trainers').insert([
+          { nome: 'Ash', senha_hash: 'dummy' }
+        ]).returning('*');
+        
+        const [misty] = await knex('trainers').insert([
+          { nome: 'Misty', senha_hash: 'dummy' }
+        ]).returning('*');
+        
+        const [brock] = await knex('trainers').insert([
           { nome: 'Brock', senha_hash: 'dummy' }
-        ]);
+        ]).returning('*');
+        
+        ashId = ash.id;
+        mistyId = misty.id;
+        brockId = brock.id;
+        
         // Registrar TrainerTest via API para garantir token válido
         const registerRes = await request(app)
             .post('/auth/register')
             .send({ nome: 'TrainerTest', senha: '123456' });
         authToken = registerRes.body.token;
-        // Inserir pokémons de teste
+        
+        // Inserir pokémons de teste com treinador_id correto
         await knex('pokemons').insert([
-            { tipo: 'pikachu', treinador: 'Ash', nivel: 1 },
-            { tipo: 'charizard', treinador: 'Ash', nivel: 2 },
-            { tipo: 'bulbasaur', treinador: 'Misty', nivel: 1 },
-            { tipo: 'squirtle', treinador: 'Brock', nivel: 1 }
+            { tipo: 'pikachu', treinador_id: ashId, nivel: 1 },
+            { tipo: 'charizard', treinador_id: ashId, nivel: 2 },
+            { tipo: 'bulbasaur', treinador_id: mistyId, nivel: 1 },
+            { tipo: 'squirtle', treinador_id: brockId, nivel: 1 }
         ]);
     });
 
@@ -71,10 +85,8 @@ describe('Treinadores', () => {
             .get('/treinadores/TreinadorInexistente/pokemons')
             .set('Authorization', `Bearer ${authToken}`);
 
-        expect(res.status).toBe(200);
-        expect(res.body).toHaveProperty('treinador', 'TreinadorInexistente');
-        expect(res.body).toHaveProperty('pokemons');
-        expect(res.body).toHaveProperty('total', 0);
-        expect(res.body.pokemons).toHaveLength(0);
+        expect(res.status).toBe(404);
+        expect(res.body).toHaveProperty('error', 'Treinador não encontrado.');
+        expect(res.body).toHaveProperty('details');
     });
 }); 

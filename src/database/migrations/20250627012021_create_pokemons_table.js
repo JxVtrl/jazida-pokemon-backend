@@ -2,8 +2,12 @@ exports.up = function (knex) {
     return knex.schema.createTable('pokemons', (table) => {
         table.increments('id').primary();
         table.string('tipo').notNullable();
-        table.string('treinador').notNullable();
+        table.integer('treinador_id').unsigned().references('id').inTable('trainers').onDelete('CASCADE');
         table.integer('nivel').notNullable().defaultTo(1);
+        
+        // Índices para melhor performance
+        table.index('treinador_id');
+        table.index('tipo');
     });
 };
 

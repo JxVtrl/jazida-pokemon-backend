@@ -14,6 +14,7 @@ afterAll(async () => {
 describe('Pokémons CRUD', () => {
     let pokemonId;
     let authToken;
+    let treinadorId;
 
     beforeAll(async () => {
         // Criar um treinador para autenticação
@@ -22,17 +23,19 @@ describe('Pokémons CRUD', () => {
             .send({ nome: 'TestTrainer', senha: '123456' });
 
         authToken = registerRes.body.token;
+        treinadorId = registerRes.body.treinador.id;
     });
 
     it('deve criar um novo pokémon válido', async () => {
         const res = await request(app)
             .post('/pokemons')
             .set('Authorization', `Bearer ${authToken}`)
-            .send({ tipo: 'pikachu', treinador: 'Ash' });
+            .send({ tipo: 'pikachu' });
 
         expect(res.status).toBe(201);
         expect(res.body).toHaveProperty('id');
         expect(res.body.nivel).toBe(1);
+        expect(res.body.treinador_id).toBe(treinadorId);
 
         pokemonId = res.body.id;
     });
@@ -41,7 +44,7 @@ describe('Pokémons CRUD', () => {
         const res = await request(app)
             .post('/pokemons')
             .set('Authorization', `Bearer ${authToken}`)
-            .send({ tipo: 'bulbasaur', treinador: 'Ash' });
+            .send({ tipo: 'bulbasaur' });
 
         expect(res.status).toBe(400);
     });
@@ -65,29 +68,34 @@ describe('Pokémons CRUD', () => {
     });
 
     it('deve alterar o treinador', async () => {
+        // Primeiro criar outro treinador
+        const outroTreinadorRes = await request(app)
+            .post('/auth/register')
+            .send({ nome: 'OutroTreinador', senha: '123456' });
+
         const res = await request(app)
             .put(`/pokemons/${pokemonId}`)
             .set('Authorization', `Bearer ${authToken}`)
-            .send({ treinador: 'Misty' });
+            .send({ treinador_id: outroTreinadorRes.body.treinador.id });
 
         expect(res.status).toBe(204);
     });
 
-    it('deve retornar erro se treinador não for fornecido', async () => {
+    it('deve retornar erro se treinador_id não for fornecido', async () => {
         const res = await request(app)
             .put(`/pokemons/${pokemonId}`)
             .set('Authorization', `Bearer ${authToken}`)
             .send({});
 
         expect(res.status).toBe(400);
-        expect(res.body.error).toBe("O campo 'treinador' é obrigatório.");
+        expect(res.body.error).toBe("O campo 'treinador_id' é obrigatório.");
     });
 
     it('deve retornar erro se pokémon não existir', async () => {
         const res = await request(app)
             .put('/pokemons/99999')
             .set('Authorization', `Bearer ${authToken}`)
-            .send({ treinador: 'Misty' });
+            .send({ treinador_id: treinadorId });
 
         expect(res.status).toBe(404);
         expect(res.body.error).toBe('Pokémon não encontrado.');
@@ -103,16 +111,20 @@ describe('Pokémons CRUD', () => {
 
     it('deve listar apenas os pokémons do treinador autenticado', async () => {
         // Criar pokémon para outro treinador
+        const outroTreinadorRes = await request(app)
+            .post('/auth/register')
+            .send({ nome: 'OutroTreinador', senha: '123456' });
+
         await request(app)
             .post('/pokemons')
-            .set('Authorization', `Bearer ${authToken}`)
-            .send({ tipo: 'charizard', treinador: 'OutroTreinador' });
+            .set('Authorization', `Bearer ${outroTreinadorRes.body.token}`)
+            .send({ tipo: 'charizard' });
 
         // Criar pokémon para o treinador autenticado
         await request(app)
             .post('/pokemons')
             .set('Authorization', `Bearer ${authToken}`)
-            .send({ tipo: 'mewtwo', treinador: 'TestTrainer' });
+            .send({ tipo: 'mewtwo' });
 
         // Buscar pokémons do treinador autenticado
         const res = await request(app)
@@ -122,9 +134,9 @@ describe('Pokémons CRUD', () => {
         expect(res.status).toBe(200);
         expect(Array.isArray(res.body)).toBe(true);
 
-        // Verificar que todos os pokémons retornados pertencem ao treinador autenticado (ID: 1)
+        // Verificar que todos os pokémons retornados pertencem ao treinador autenticado
         res.body.forEach(pokemon => {
-            expect(pokemon.treinador.toString()).toBe("1");
+            expect(pokemon.treinador_id).toBe(treinadorId);
         });
     });
 });

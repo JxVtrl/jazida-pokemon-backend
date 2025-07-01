@@ -11,8 +11,21 @@ async function listarPokemonsPorTreinador(req, res) {
     try {
         console.log(`🔍 Buscando pokémons do treinador: ${nome}`);
 
+        // Primeiro buscar o treinador pelo nome
+        const treinador = await knex('trainers')
+            .where({ nome })
+            .first();
+
+        if (!treinador) {
+            return res.status(404).json({
+                error: 'Treinador não encontrado.',
+                details: `Treinador com nome ${nome} não foi encontrado.`
+            });
+        }
+
+        // Depois buscar os pokémons do treinador
         const pokemons = await knex('pokemons')
-            .where({ treinador: nome })
+            .where({ treinador_id: treinador.id })
             .orderBy('id', 'asc');
 
         console.log(`✅ Encontrados ${pokemons.length} pokémons para o treinador ${nome}`);

@@ -64,8 +64,8 @@ router.post('/:battleId/iniciar', requireAuth, async (req, res) => {
     const treinadorBNome = treinadorBData?.nome || 'Treinador B';
     
     // Encontrar qual pokémon pertence a qual treinador
-    const pokemonA = pokemons.find(p => p.id === treinadorAId ? sel[treinadorAId].pokemonId : null) || pokemons[0];
-    const pokemonB = pokemons.find(p => p.id === treinadorBId ? sel[treinadorBId].pokemonId : null) || pokemons[1];
+    const pokemonA = pokemons.find(p => p.treinador_id === treinadorAId) || pokemons[0];
+    const pokemonB = pokemons.find(p => p.treinador_id === treinadorBId) || pokemons[1];
     
     if (!pokemonA || !pokemonB) {
         console.log(`[BATALHA][${battleId}] ❌ Erro ao mapear pokémons aos treinadores`);
@@ -73,17 +73,17 @@ router.post('/:battleId/iniciar', requireAuth, async (req, res) => {
     }
     
     // CORREÇÃO: Garantir que pokemonA sempre seja do primeiro treinador e pokemonB do segundo
-    // E que o campo treinador contenha o ID do treinador, não o nome
+    // E que o campo treinador_id contenha o ID do treinador
     const battlePokemonA = { 
         ...pokemonA, 
-        treinador: treinadorAId, // Usar ID do treinador
+        treinador_id: treinadorAId, // Usar ID do treinador
         vida: 100, 
         vidaMaxima: 100, 
         status: 'ready' 
     };
     const battlePokemonB = { 
         ...pokemonB, 
-        treinador: treinadorBId, // Usar ID do treinador
+        treinador_id: treinadorBId, // Usar ID do treinador
         vida: 100, 
         vidaMaxima: 100, 
         status: 'ready' 
@@ -168,8 +168,8 @@ router.post('/:battleId/iniciar', requireAuth, async (req, res) => {
             // Determinar vencedor (quem ainda tem vida > 0)
             const vencedor = vidaA > 0 ? pokeA : pokeB;
             const perdedor = vencedor.id === pokeA.id ? pokeB : pokeA;
-            const treinadorVencedor = sel[vencedor.treinador]?.treinadorNome || vencedor.treinador;
-            const treinadorPerdedor = sel[perdedor.treinador]?.treinadorNome || perdedor.treinador;
+            const treinadorVencedor = sel[vencedor.treinador_id]?.treinadorNome || vencedor.treinador_id;
+            const treinadorPerdedor = sel[perdedor.treinador_id]?.treinadorNome || perdedor.treinador_id;
             console.log(`[BATALHA][${battleId}] Vencedor: ${treinadorVencedor} (${vencedor.tipo})`);
             console.log(`[BATALHA][${battleId}] Perdedor: ${treinadorPerdedor} (${perdedor.tipo})`);
             // Salvar histórico da batalha usando o nome real dos treinadores
@@ -187,8 +187,8 @@ router.post('/:battleId/iniciar', requireAuth, async (req, res) => {
                 pokemon_b_level_before: battlePokemonB.nivel, // Nível original antes da batalha
                 pokemon_a_level_after: battlePokemonA.id === vencedor.id ? battlePokemonA.nivel + 1 : Math.max(0, battlePokemonA.nivel - 1),
                 pokemon_b_level_after: battlePokemonB.id === vencedor.id ? battlePokemonB.nivel + 1 : Math.max(0, battlePokemonB.nivel - 1),
-                winner_trainer_id: vencedor.treinador,
-                loser_trainer_id: perdedor.treinador,
+                winner_trainer_id: vencedor.treinador_id,
+                loser_trainer_id: perdedor.treinador_id,
                 winner_pokemon_type: vencedor.tipo,
                 loser_pokemon_type: perdedor.tipo,
                 rounds_played: roundAtual - 1,
@@ -210,16 +210,16 @@ router.post('/:battleId/iniciar', requireAuth, async (req, res) => {
                 winner: { 
                     ...vencedor, 
                     nivel: vencedor.nivel + 1, 
-                    treinador: vencedor.treinador // Manter o ID do treinador
+                    treinador_id: vencedor.treinador_id // Manter o ID do treinador
                 },
                 loser: { 
                     ...perdedorFinal, 
-                    treinador: perdedor.treinador // Manter o ID do treinador
+                    treinador_id: perdedor.treinador_id // Manter o ID do treinador
                 },
                 rounds: roundAtual - 1
             });
             console.log(`[BATALHA][${battleId}] Evento 'battle:end' emitido para sala ${roomName}`);
-            console.log(`[BATALHA][${battleId}] Winner treinador ID: ${vencedor.treinador}, Loser treinador ID: ${perdedor.treinador}`);
+            console.log(`[BATALHA][${battleId}] Winner treinador ID: ${vencedor.treinador_id}, Loser treinador ID: ${perdedor.treinador_id}`);
         } catch (err) {
             console.error(`[BATALHA][${battleId}] Erro ao simular batalha:`, err);
         }

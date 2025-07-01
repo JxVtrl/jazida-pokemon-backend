@@ -110,6 +110,7 @@ async function getBattleHistory(req, res) {
     try {
         console.log(`🔍 Buscando histórico de batalhas do treinador ID: ${treinadorId}`);
 
+        // Buscar batalhas onde o treinador participou
         const battles = await knex('battle_history')
             .where(function() {
                 this.where('trainer_a_id', treinadorId)
@@ -117,6 +118,8 @@ async function getBattleHistory(req, res) {
             })
             .orderBy('created_at', 'desc')
             .limit(50); // Limitar a 50 batalhas mais recentes
+
+        console.log(`📊 Encontradas ${battles.length} batalhas no banco`);
 
         // Formatar dados para o frontend
         const formattedBattles = battles.map(battle => {
@@ -126,7 +129,7 @@ async function getBattleHistory(req, res) {
             return {
                 id: battle.battle_id,
                 data: battle.created_at,
-                rounds: battle.rounds_played,
+                rounds: battle.rounds_played || 1,
                 euSouA: isTrainerA,
                 meuPokemon: isTrainerA ? battle.pokemon_a_type : battle.pokemon_b_type,
                 meuNivelAntes: isTrainerA ? battle.pokemon_a_level_before : battle.pokemon_b_level_before,
@@ -138,7 +141,7 @@ async function getBattleHistory(req, res) {
             };
         });
 
-        console.log(`✅ Encontradas ${formattedBattles.length} batalhas`);
+        console.log(`✅ Formatadas ${formattedBattles.length} batalhas para o frontend`);
 
         return res.status(200).json(formattedBattles);
 
