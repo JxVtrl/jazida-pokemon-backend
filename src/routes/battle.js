@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
-const { batalharPokemons } = require('../controllers/BattleController');
+const { battleController } = require('../controllers/BattleController');
 
 // INSTÂNCIA ÚNICA DO BANCO - Garantir que salvamento e consulta usem a mesma conexão
 const db = require('../database/db');
@@ -399,6 +399,6 @@ router.post('/aceitar/:battleId', requireAuth, async (req, res) => {
 });
 
 // ROTA DE BATALHA DIRETA (DEVE VIR POR ÚLTIMO)
-router.post('/:pokemonAId/:pokemonBId', requireAuth, batalharPokemons);
+router.post('/:pokemonAId/:pokemonBId', requireAuth, battleController);
 
 module.exports = router;

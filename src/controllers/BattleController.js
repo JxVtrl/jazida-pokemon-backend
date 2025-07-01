@@ -6,7 +6,7 @@ const { saveBattleHistory } = require('./BattleHistoryController');
  * @param {Object} req - Request object
  * @param {Object} res - Response object
  */
-async function batalharPokemons(req, res) {
+async function battleController(req, res) {
     const { pokemonAId, pokemonBId } = req.params;
 
     try {
@@ -179,5 +179,5 @@ async function batalharPokemons(req, res) {
 }
 
 module.exports = {
-    batalharPokemons
+    battleController
 }; 

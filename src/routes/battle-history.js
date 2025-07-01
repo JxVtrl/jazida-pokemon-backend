@@ -5,7 +5,7 @@ const { getBattleHistory, getTrainerStats } = require('../controllers/BattleHist
 
 /**
  * @swagger
- * /battle-history:
+ * /historico-batalha:
  *   get:
  *     summary: Busca o histórico de batalhas do treinador
  *     description: Retorna as últimas 50 batalhas do treinador autenticado
@@ -67,7 +67,7 @@ router.get('/', requireAuth, getBattleHistory);
 
 /**
  * @swagger
- * /battle-history/stats:
+ * /historico-batalha/stats:
  *   get:
  *     summary: Busca estatísticas detalhadas do treinador
  *     description: Retorna estatísticas completas incluindo nível e experiência
