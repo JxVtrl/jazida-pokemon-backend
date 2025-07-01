@@ -177,7 +177,7 @@ router.post('/:battleId/iniciar', requireAuth, async (req, res) => {
             await db('pokemons').where({ id: vencedor.id }).update({ nivel: vencedor.nivel + 1 });
             let perdedorFinal = { ...perdedor, nivel: perdedor.nivel - 1 };
             
-            // Salvar histórico da batalha DEPOIS de atualizar níveis
+            // Salvar histórico da batalha ANTES de remover pokémon
             const battleHistory = {
                 battle_id: battleId,
                 trainer_a_id: treinadorAId,
@@ -206,8 +206,10 @@ router.post('/:battleId/iniciar', requireAuth, async (req, res) => {
             // Remover pokémon perdedor POR ÚLTIMO (se nível 0)
             if (perdedorFinal.nivel <= 0) {
                 await db('pokemons').where({ id: perdedor.id }).del();
+                console.log(`[BATALHA][${battleId}] 💀 Pokémon ${perdedor.tipo} removido (nível 0)`);
             } else {
                 await db('pokemons').where({ id: perdedor.id }).update({ nivel: perdedorFinal.nivel });
+                console.log(`[BATALHA][${battleId}] ⬇️ Pokémon ${perdedor.tipo} atualizado para nível ${perdedorFinal.nivel}`);
             }
             // Emitir evento de fim de batalha
             io.to(roomName).emit('battle:end', {
